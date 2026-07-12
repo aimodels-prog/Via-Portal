@@ -6,8 +6,19 @@ const hostname = "0.0.0.0";
 
 const server = createServer(async (incoming, outgoing) => {
   try {
+    if (incoming.url === "/health") {
+      outgoing.statusCode = 200;
+      outgoing.setHeader("content-type", "text/plain; charset=utf-8");
+      outgoing.end("ok");
+      return;
+    }
+
     const host = incoming.headers.host ?? `localhost:${port}`;
-    const url = new URL(incoming.url ?? "/", `http://${host}`);
+    const forwardedProtocol = incoming.headers["x-forwarded-proto"];
+    const protocol = Array.isArray(forwardedProtocol)
+      ? forwardedProtocol[0]
+      : forwardedProtocol || "http";
+    const url = new URL(incoming.url ?? "/", `${protocol}://${host}`);
     const headers = new Headers();
 
     for (const [name, value] of Object.entries(incoming.headers)) {

@@ -87,24 +87,61 @@ function Portal() {
     user: PortalUser;
     apps: PortalApp[];
   }>();
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetch("/api/apps")
-      .then((response) => {
+      .then(async (response) => {
         if (response.status === 401) {
           window.location.replace("/auth/signin");
           return null;
         }
-        if (!response.ok) throw new Error("Unable to load portal apps.");
-        return response.json();
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Unable to load portal apps.");
+        }
+        return payload;
       })
       .then((payload: { user: PortalUser; apps: PortalApp[] } | null) => {
         if (payload) setState(payload);
       })
-      .catch(() => {
-        window.location.replace("/auth/signin");
+      .catch((loadError) => {
+        setError(loadError instanceof Error ? loadError.message : "Unable to load portal.");
       });
   }, []);
+
+  if (error) {
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center px-6"
+        style={{ background: "var(--gradient-subtle)" }}
+      >
+        <div className="max-w-md rounded-lg border border-border bg-background p-6 text-center">
+          <Monitor className="mx-auto mb-4 h-8 w-8 text-[var(--via-blue)]" />
+          <h1 className="text-xl font-semibold text-foreground">
+            Portal could not load
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            {error}
+          </p>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex h-10 items-center rounded-lg bg-[var(--via-blue)] px-4 text-sm font-semibold text-primary-foreground"
+            >
+              Try again
+            </button>
+            <a
+              href="/auth/signout"
+              className="inline-flex h-10 items-center rounded-lg border border-border bg-background px-4 text-sm font-semibold text-foreground"
+            >
+              Sign out
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!state) {
     return (

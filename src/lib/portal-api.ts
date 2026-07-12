@@ -23,15 +23,20 @@ export async function handlePortalApi(request: Request) {
   const url = new URL(request.url);
 
   if (url.pathname === "/api/apps" && request.method === "GET") {
-    return json({
-      apps: await getVisibleApps(session.email),
-      user: {
-        email: session.email,
-        name: session.name,
-        picture: session.picture,
-        isAdmin: isPortalAdmin(session.email),
-      },
-    });
+    try {
+      return json({
+        apps: await getVisibleApps(session.email),
+        user: {
+          email: session.email,
+          name: session.name,
+          picture: session.picture,
+          isAdmin: isPortalAdmin(session.email),
+        },
+      });
+    } catch (error) {
+      console.error(error);
+      return json({ error: getErrorMessage(error) }, 500);
+    }
   }
 
   if (!isPortalAdmin(session.email)) {
@@ -39,7 +44,12 @@ export async function handlePortalApi(request: Request) {
   }
 
   if (url.pathname === "/api/admin/apps" && request.method === "GET") {
-    return json({ apps: await getAllApps() });
+    try {
+      return json({ apps: await getAllApps() });
+    } catch (error) {
+      console.error(error);
+      return json({ error: getErrorMessage(error) }, 500);
+    }
   }
 
   if (url.pathname === "/api/admin/apps" && request.method === "POST") {

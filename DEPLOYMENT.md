@@ -22,8 +22,8 @@ Run command:
 npm run start
 ```
 
-The build command runs Prisma migrations against `DATABASE_URL`, generates the
-Prisma client, and builds the TanStack Start server.
+The run command starts `server.mjs`, which listens on DigitalOcean's `PORT`
+environment variable and forwards requests to the TanStack Start server.
 
 ## Environment variables
 

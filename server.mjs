@@ -40,9 +40,25 @@ const server = createServer(async (incoming, outgoing) => {
 
     outgoing.statusCode = response.status;
     outgoing.statusMessage = response.statusText;
+    const setCookies =
+      typeof response.headers.getSetCookie === "function"
+        ? response.headers.getSetCookie()
+        : [];
+
     response.headers.forEach((value, name) => {
-      outgoing.setHeader(name, value);
+      if (name.toLowerCase() !== "set-cookie") {
+        outgoing.setHeader(name, value);
+      }
     });
+
+    if (setCookies.length > 0) {
+      outgoing.setHeader("set-cookie", setCookies);
+    } else {
+      const setCookie = response.headers.get("set-cookie");
+      if (setCookie) {
+        outgoing.setHeader("set-cookie", splitCombinedSetCookie(setCookie));
+      }
+    }
 
     if (response.body) {
       for await (const chunk of response.body) {
@@ -61,3 +77,7 @@ const server = createServer(async (incoming, outgoing) => {
 server.listen(port, hostname, () => {
   console.log(`VIA Portal listening on http://${hostname}:${port}`);
 });
+
+function splitCombinedSetCookie(value) {
+  return value.split(/,(?=\s*[^;,]+=)/g).map((cookie) => cookie.trim());
+}

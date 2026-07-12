@@ -88,7 +88,11 @@ server.listen(port, hostname, () => {
 });
 
 function serveStaticAsset(pathname, outgoing) {
-  if (pathname !== "/favicon.svg" && !pathname.startsWith("/assets/")) {
+  if (
+    pathname !== "/favicon.svg" &&
+    pathname !== "/via-logo.png" &&
+    !pathname.startsWith("/assets/")
+  ) {
     return false;
   }
 

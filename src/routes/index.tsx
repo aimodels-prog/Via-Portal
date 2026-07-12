@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  ArrowUpRight,
+  ArrowRight,
   FileText,
-  LockKeyhole,
   LogOut,
   Monitor,
   Plus,
@@ -10,21 +9,21 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "VIA Portal - All Your Applications" },
+      { title: "VIA Portal" },
       {
         name: "description",
         content:
-          "The VIA Portal - a single Google Workspace sign-in for every VIA International application.",
+          "A secure application portal for VIA International staff.",
       },
       { property: "og:title", content: "VIA Portal" },
       {
         property: "og:description",
-        content: "One secure portal for every VIA application.",
+        content: "Secure access to VIA applications.",
       },
     ],
   }),
@@ -48,25 +47,25 @@ type PortalApp = {
 
 const accentMap: Record<
   PortalApp["accent"],
-  { bg: string; text: string; ring: string; dot: string }
+  { bg: string; text: string; ring: string; line: string }
 > = {
   blue: {
-    bg: "bg-[var(--via-blue)]/8",
+    bg: "bg-[var(--via-blue)]/7",
     text: "text-[var(--via-blue)]",
-    ring: "ring-[var(--via-blue)]/20",
-    dot: "bg-[var(--via-blue)]",
+    ring: "ring-[var(--via-blue)]/15",
+    line: "bg-[var(--via-blue)]",
   },
   green: {
     bg: "bg-[var(--via-green)]/8",
     text: "text-[var(--via-green)]",
-    ring: "ring-[var(--via-green)]/20",
-    dot: "bg-[var(--via-green)]",
+    ring: "ring-[var(--via-green)]/15",
+    line: "bg-[var(--via-green)]",
   },
   red: {
     bg: "bg-[var(--via-red)]/8",
     text: "text-[var(--via-red)]",
-    ring: "ring-[var(--via-red)]/20",
-    dot: "bg-[var(--via-red)]",
+    ring: "ring-[var(--via-red)]/15",
+    line: "bg-[var(--via-red)]",
   },
 };
 
@@ -75,12 +74,6 @@ const iconMap = {
   sparkles: Sparkles,
   app: Monitor,
 };
-
-const ssoSteps = [
-  ["Google login", "Use your company account"],
-  ["Portal access", "Show only approved apps"],
-  ["App handoff", "No local passwords"],
-];
 
 function Portal() {
   const [state, setState] = useState<{
@@ -111,90 +104,58 @@ function Portal() {
   }, []);
 
   if (error) {
-    return (
-      <div
-        className="flex min-h-screen items-center justify-center px-6"
-        style={{ background: "var(--gradient-subtle)" }}
-      >
-        <div className="max-w-md rounded-lg border border-border bg-background p-6 text-center">
-          <Monitor className="mx-auto mb-4 h-8 w-8 text-[var(--via-blue)]" />
-          <h1 className="text-xl font-semibold text-foreground">
-            Portal could not load
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            {error}
-          </p>
-          <div className="mt-5 flex flex-wrap justify-center gap-2">
-            <button
-              onClick={() => window.location.reload()}
-              className="inline-flex h-10 items-center rounded-lg bg-[var(--via-blue)] px-4 text-sm font-semibold text-primary-foreground"
-            >
-              Try again
-            </button>
-            <a
-              href="/auth/signout"
-              className="inline-flex h-10 items-center rounded-lg border border-border bg-background px-4 text-sm font-semibold text-foreground"
-            >
-              Sign out
-            </a>
-          </div>
-        </div>
-      </div>
-    );
+    return <PortalMessage title="Portal could not load" message={error} />;
   }
 
   if (!state) {
     return (
-      <div
-        className="flex min-h-screen items-center justify-center px-6"
-        style={{ background: "var(--gradient-subtle)" }}
-      >
-        <div className="text-center">
-          <ShieldCheck className="mx-auto mb-4 h-8 w-8 text-[var(--via-blue)]" />
-          <h1 className="text-xl font-semibold text-foreground">
-            Checking Google sign-in
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            You need to sign in before opening the VIA Portal.
-          </p>
-        </div>
-      </div>
+      <PortalMessage
+        title="Opening workspace"
+        message="Checking your secure session."
+        loading
+      />
     );
   }
 
   const { user, apps } = state;
+  const firstName = getFirstName(user);
+  const currentDate = new Intl.DateTimeFormat("en", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  }).format(new Date());
 
   return (
-    <div
-      className="flex min-h-screen flex-col"
-      style={{ background: "var(--gradient-subtle)" }}
-    >
-      <header className="border-b border-border/50 bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <div className="flex items-center gap-3">
-            <a href="/" className="text-2xl font-bold tracking-normal text-[var(--via-blue)]">
-              VIA
-            </a>
-          </div>
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-[#f6f9fc] text-foreground">
+      <header className="sticky top-0 z-20 border-b border-[#dfe8f3] bg-white/88 backdrop-blur-xl">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8">
+          <a href="/" className="flex items-center">
+            <img
+              src="/via-logo.png"
+              alt="VIA International"
+              className="h-12 w-auto"
+            />
+          </a>
+
+          <div className="flex items-center gap-2 sm:gap-3">
             {user.isAdmin ? (
               <a
                 href="/admin"
-                className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-semibold text-foreground transition hover:border-[var(--via-blue)]/40"
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#dfe8f3] bg-white px-3 text-sm font-semibold text-[#10223d] shadow-sm transition hover:border-[var(--via-blue)]/35"
               >
                 <Settings className="h-4 w-4" />
-                Admin
+                <span className="hidden sm:inline">Admin</span>
               </a>
             ) : null}
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-semibold text-foreground">
-                {user.name ?? "Google Workspace"}
+            <div className="hidden min-w-0 text-right md:block">
+              <p className="truncate text-sm font-semibold text-[#10223d]">
+                {user.name ?? user.email}
               </p>
-              <p className="text-xs text-muted-foreground">{user.email}</p>
+              <p className="truncate text-xs text-[#69758b]">{user.email}</p>
             </div>
             <a
               href="/auth/signout"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition hover:border-[var(--via-blue)]/40 hover:text-foreground"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dfe8f3] bg-white text-[#69758b] shadow-sm transition hover:border-[var(--via-blue)]/35 hover:text-[#10223d]"
               aria-label="Sign out"
               title="Sign out"
             >
@@ -204,85 +165,134 @@ function Portal() {
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col items-center px-6 pt-16 pb-24">
-        <section className="mb-12 text-center">
-          <div className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm font-medium text-muted-foreground">
-            <ShieldCheck className="h-4 w-4 text-[var(--via-green)]" />
-            One account for every VIA application
-          </div>
-          <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-            Welcome to the <span className="text-[var(--via-blue)]">VIA</span>{" "}
-            Portal
-          </h1>
-          <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-muted-foreground">
-            You are signed in with Google Workspace. Open any approved
-            application below without separate usernames or passwords.
-          </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <a
-              href="#applications"
-              className="inline-flex h-11 items-center gap-2 rounded-lg bg-[var(--via-blue)] px-5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-[var(--via-blue-dark)]"
-            >
-              <ArrowUpRight className="h-4 w-4" />
-              Open applications
-            </a>
-            {user.isAdmin ? (
-              <a
-                href="/admin"
-                className="inline-flex h-11 items-center gap-2 rounded-lg border border-border bg-background px-5 text-sm font-semibold text-foreground transition hover:border-[var(--via-blue)]/40"
-              >
-                <Plus className="h-4 w-4" />
-                Add application
-              </a>
-            ) : null}
-          </div>
-        </section>
-
-        <section
-          aria-label="Single sign-on status"
-          className="mx-auto mb-10 grid w-full max-w-4xl grid-cols-1 gap-3 sm:grid-cols-3"
-        >
-          {ssoSteps.map(([title, detail]) => (
-            <div
-              key={title}
-              className="flex items-center gap-3 rounded-lg border border-border/70 bg-background/75 px-4 py-3"
-            >
-              <LockKeyhole className="h-4 w-4 shrink-0 text-[var(--via-blue)]" />
+      <main className="mx-auto grid max-w-7xl gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="space-y-8">
+          <div className="overflow-hidden rounded-[10px] border border-[#dfe8f3] bg-white shadow-[0_24px_70px_rgba(13,43,79,0.08)]">
+            <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1fr_260px] lg:items-end">
               <div>
-                <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-                <p className="text-xs text-muted-foreground">{detail}</p>
+                <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#dfe8f3] bg-[#f7fafc] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.08em] text-[var(--via-blue)]">
+                  <ShieldCheck className="h-3.5 w-3.5 text-[var(--via-green)]" />
+                  Verified workspace
+                </div>
+                <p className="text-sm font-semibold text-[#69758b]">{currentDate}</p>
+                <h1 className="mt-3 max-w-3xl text-4xl font-semibold leading-[1.02] tracking-normal text-[#08172f] sm:text-5xl">
+                  Good to see you, {firstName}.
+                </h1>
+                <p className="mt-4 max-w-xl text-base leading-7 text-[#647188]">
+                  Your approved VIA systems are ready.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+                <Metric label="Apps" value={apps.length.toString()} />
+                <Metric label="Access" value="Active" />
               </div>
             </div>
-          ))}
-        </section>
-
-        <section
-          id="applications"
-          aria-label="Applications"
-          className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
-        >
-          {apps.length > 0 ? (
-            apps.map((app) => <AppTile key={app.id} app={app} />)
-          ) : (
-            <div className="col-span-full rounded-lg border border-border bg-background/80 p-8 text-center">
-              <Monitor className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-              <h2 className="text-lg font-semibold text-foreground">
-                No applications assigned
-              </h2>
-              <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                Ask a portal admin to add software for your account or make it
-                visible to all staff.
-              </p>
+            <div className="grid h-1 grid-cols-3">
+              <span className="bg-[var(--via-blue)]" />
+              <span className="bg-[var(--via-green)]" />
+              <span className="bg-[var(--via-red)]" />
             </div>
-          )}
-        </section>
-      </main>
+          </div>
 
-      <footer className="mt-auto border-t border-border/50 bg-background/60 py-8 backdrop-blur">
-        <p className="text-center text-xs text-muted-foreground">
-          (c) {new Date().getFullYear()} VIA International. All rights reserved.
-        </p>
-      </footer>
+          <section aria-label="Applications" className="space-y-4">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold tracking-normal text-[#08172f]">
+                  Applications
+                </h2>
+                <p className="mt-1 text-sm text-[#69758b]">
+                  Open the tools assigned to your account.
+                </p>
+              </div>
+              {user.isAdmin ? (
+                <a
+                  href="/admin"
+                  className="inline-flex h-10 items-center gap-2 rounded-lg bg-[var(--via-blue)] px-4 text-sm font-semibold text-white shadow-[0_16px_34px_rgba(15,91,153,0.22)] transition hover:bg-[var(--via-blue-dark)]"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add app
+                </a>
+              ) : null}
+            </div>
+
+            {apps.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {apps.map((app) => (
+                  <AppTile key={app.id} app={app} />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-[10px] border border-dashed border-[#cfdced] bg-white p-8 text-center">
+                <Monitor className="mx-auto mb-3 h-8 w-8 text-[#8b97aa]" />
+                <h3 className="text-base font-semibold text-[#08172f]">
+                  No apps assigned yet
+                </h3>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#69758b]">
+                  A portal admin can assign software to your account.
+                </p>
+              </div>
+            )}
+          </section>
+        </section>
+
+        <aside className="space-y-4">
+          <section className="rounded-[10px] border border-[#dfe8f3] bg-white p-5 shadow-[0_18px_50px_rgba(13,43,79,0.06)]">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-[#69758b]">
+              Session
+            </h2>
+            <div className="mt-5 space-y-4">
+              <StatusLine label="Identity" value="Google" tone="blue" />
+              <StatusLine label="Workspace" value="via-int.com" tone="green" />
+              <StatusLine label="Role" value={user.isAdmin ? "Admin" : "Staff"} tone="red" />
+            </div>
+          </section>
+
+          <section className="rounded-[10px] border border-[#dfe8f3] bg-[#08172f] p-5 text-white shadow-[0_18px_50px_rgba(8,23,47,0.18)]">
+            <h2 className="text-lg font-semibold tracking-normal">VIA Portal</h2>
+            <p className="mt-2 text-sm leading-6 text-white/68">
+              Secure access, managed by your internal team.
+            </p>
+          </section>
+        </aside>
+      </main>
+    </div>
+  );
+}
+
+function PortalMessage({
+  title,
+  message,
+  loading,
+}: {
+  title: string;
+  message: string;
+  loading?: boolean;
+}) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#f6f9fc] px-6">
+      <div className="w-full max-w-md rounded-[10px] border border-[#dfe8f3] bg-white p-7 text-center shadow-[0_24px_70px_rgba(13,43,79,0.08)]">
+        <img src="/via-logo.png" alt="VIA International" className="mx-auto mb-8 h-14 w-auto" />
+        <Monitor className={`mx-auto mb-4 h-7 w-7 text-[var(--via-blue)] ${loading ? "animate-pulse" : ""}`} />
+        <h1 className="text-xl font-semibold text-[#08172f]">{title}</h1>
+        <p className="mt-2 text-sm leading-6 text-[#69758b]">{message}</p>
+        {!loading ? (
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex h-10 items-center rounded-lg bg-[var(--via-blue)] px-4 text-sm font-semibold text-white"
+            >
+              Try again
+            </button>
+            <a
+              href="/auth/signout"
+              className="inline-flex h-10 items-center rounded-lg border border-[#dfe8f3] bg-white px-4 text-sm font-semibold text-[#10223d]"
+            >
+              Sign out
+            </a>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -294,27 +304,70 @@ function AppTile({ app }: { app: PortalApp }) {
   return (
     <a
       href={app.url}
-      className="group relative flex flex-col rounded-lg border border-border/60 bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-[var(--via-blue)]/30 hover:shadow-xl"
-      style={{ boxShadow: "var(--shadow-card)" }}
+      className="group relative min-h-[190px] overflow-hidden rounded-[10px] border border-[#dfe8f3] bg-white p-5 shadow-[0_18px_50px_rgba(13,43,79,0.06)] transition duration-300 hover:-translate-y-0.5 hover:border-[var(--via-blue)]/28 hover:shadow-[0_24px_70px_rgba(13,43,79,0.1)]"
     >
-      <div className="mb-5 flex items-start justify-between">
-        <div
-          className={`flex h-12 w-12 items-center justify-center rounded-lg ${style.bg} ${style.text} ring-1 ${style.ring} transition-all duration-300 group-hover:scale-105`}
-        >
+      <span className={`absolute inset-x-0 top-0 h-1 ${style.line}`} />
+      <div className="flex items-start justify-between gap-4">
+        <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${style.bg} ${style.text} ring-1 ${style.ring}`}>
           <Icon className="h-6 w-6" />
         </div>
-        <ArrowUpRight className="h-5 w-5 text-muted-foreground/40 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[var(--via-blue)]" />
-      </div>
-      <h2 className="text-lg font-semibold text-foreground">{app.name}</h2>
-      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-        {app.description}
-      </p>
-      <div className="mt-5 flex items-center gap-2">
-        <span className={`inline-block h-1.5 w-1.5 rounded-full ${style.dot}`} />
-        <span className="text-xs font-medium text-muted-foreground">
-          Available
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#e3ebf5] text-[#7a879a] transition group-hover:border-[var(--via-blue)]/30 group-hover:text-[var(--via-blue)]">
+          <ArrowRight className="h-4 w-4" />
         </span>
+      </div>
+      <div className="mt-7">
+        <h3 className="text-lg font-semibold tracking-normal text-[#08172f]">
+          {app.name}
+        </h3>
+        <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#69758b]">
+          {app.description || "Open application"}
+        </p>
       </div>
     </a>
   );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[10px] border border-[#dfe8f3] bg-[#f7fafc] p-4">
+      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#69758b]">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-semibold tracking-normal text-[#08172f]">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function StatusLine({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "blue" | "green" | "red";
+}) {
+  const color =
+    tone === "green"
+      ? "bg-[var(--via-green)]"
+      : tone === "red"
+        ? "bg-[var(--via-red)]"
+        : "bg-[var(--via-blue)]";
+
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center gap-2">
+        <span className={`h-2 w-2 rounded-full ${color}`} />
+        <span className="text-sm text-[#69758b]">{label}</span>
+      </div>
+      <span className="text-sm font-semibold text-[#10223d]">{value}</span>
+    </div>
+  );
+}
+
+function getFirstName(user: PortalUser) {
+  const source = user.name || user.email;
+  return source.split(/[ @]/)[0] || "there";
 }

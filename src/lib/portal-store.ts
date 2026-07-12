@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -43,6 +44,7 @@ const prisma = new PrismaClient({
 
 const seedApps = [
   {
+    id: "tender-cv",
     name: "Tender CV",
     slug: "tender-cv",
     url: "#",
@@ -54,6 +56,7 @@ const seedApps = [
     visibleToEmails: [],
   },
   {
+    id: "ai-vendor",
     name: "AI Vendor",
     slug: "ai-vendor",
     url: "#",
@@ -64,7 +67,7 @@ const seedApps = [
     visibleToAllStaff: true,
     visibleToEmails: [],
   },
-] satisfies Array<Omit<PortalApp, "id" | "createdAt" | "updatedAt">>;
+] satisfies Array<Omit<PortalApp, "createdAt" | "updatedAt">>;
 
 export async function getVisibleApps(email: string) {
   await ensureSeedApps();
@@ -97,7 +100,12 @@ export async function createApp(input: AppInput) {
     select: { slug: true },
   });
   const app = normalizeInput(input, createUniqueSlug(input.name, existingApps));
-  const created = await prisma.application.create({ data: app });
+  const created = await prisma.application.create({
+    data: {
+      id: randomUUID(),
+      ...app,
+    },
+  });
   return toPortalApp(created);
 }
 

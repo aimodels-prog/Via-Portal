@@ -40,7 +40,7 @@ if (!databaseUrl) {
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({
-    connectionString: databaseUrl,
+    connectionString: getPgConnectionString(databaseUrl),
     ssl: {
       rejectUnauthorized: false,
     },
@@ -275,4 +275,10 @@ function loadLocalEnv() {
       process.env[key] = value;
     }
   }
+}
+
+function getPgConnectionString(value: string) {
+  const url = new URL(value);
+  url.searchParams.delete("sslmode");
+  return url.toString();
 }

@@ -47,6 +47,8 @@ const prisma = new PrismaClient({
   }),
 });
 
+let schemaReady = false;
+
 const seedApps = [
   {
     id: "tender-cv",
@@ -101,6 +103,8 @@ export async function getAllApps() {
 }
 
 export async function createApp(input: AppInput) {
+  await ensureSchema();
+
   const existingApps = await prisma.application.findMany({
     select: { slug: true },
   });
@@ -115,6 +119,8 @@ export async function createApp(input: AppInput) {
 }
 
 export async function updateApp(id: string, input: AppInput) {
+  await ensureSchema();
+
   const existing = await prisma.application.findUnique({ where: { id } });
   if (!existing) return null;
 
@@ -127,6 +133,8 @@ export async function updateApp(id: string, input: AppInput) {
 }
 
 export async function deleteApp(id: string) {
+  await ensureSchema();
+
   const existing = await prisma.application.findUnique({ where: { id } });
   if (!existing) return false;
 
@@ -135,6 +143,8 @@ export async function deleteApp(id: string) {
 }
 
 async function ensureSeedApps() {
+  await ensureSchema();
+
   const count = await prisma.application.count();
   if (count > 0) return;
 
@@ -142,6 +152,34 @@ async function ensureSeedApps() {
     data: seedApps,
     skipDuplicates: true,
   });
+}
+
+async function ensureSchema() {
+  if (schemaReady) return;
+
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "Application" (
+      "id" TEXT NOT NULL,
+      "name" TEXT NOT NULL,
+      "slug" TEXT NOT NULL,
+      "url" TEXT NOT NULL,
+      "description" TEXT,
+      "status" TEXT NOT NULL DEFAULT 'active',
+      "icon" TEXT NOT NULL DEFAULT 'app',
+      "accent" TEXT NOT NULL DEFAULT 'blue',
+      "visibleToAllStaff" BOOLEAN NOT NULL DEFAULT true,
+      "visibleToEmails" TEXT[] DEFAULT ARRAY[]::TEXT[],
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "Application_pkey" PRIMARY KEY ("id")
+    )
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    CREATE UNIQUE INDEX IF NOT EXISTS "Application_slug_key" ON "Application"("slug")
+  `);
+
+  schemaReady = true;
 }
 
 function normalizeInput(input: AppInput, slug: string) {

@@ -685,6 +685,15 @@ function createSsoToken({
 
 function getAppTokenAudience(app: { slug: string; name: string; url: string }) {
   if (
+    app.slug === "tender-cv" ||
+    app.slug === "via-cv-generation" ||
+    app.name.toLowerCase().includes("cv") ||
+    app.url.includes("cv")
+  ) {
+    return "via-cv-generation";
+  }
+
+  if (
     app.slug === "ai-vendor" ||
     app.slug === "via-ai-vendor-app" ||
     app.name.toLowerCase().includes("vendor") ||

@@ -56,6 +56,64 @@ Expected result:
 When a VIA user goes to the portal, signs in with Google Workspace, and clicks this app, they land inside the app already authenticated with the correct permissions. No extra username or password is requested.
 ```
 
+## Direct URL behavior
+
+If a staff member opens the application URL directly while not signed into that app, the app must immediately redirect them to the VIA Portal.
+
+Use this redirect:
+
+```text
+https://portal.via-int.com/auth/google?returnTo=ENCODED_APP_URL
+```
+
+Example:
+
+```text
+https://portal.via-int.com/auth/google?returnTo=https%3A%2F%2Ftender.via-int.com%2Fdashboard
+```
+
+After Google sign-in, the portal will verify the user has access to that app and redirect back to the original app URL with a short-lived token:
+
+```text
+https://tender.via-int.com/dashboard?portal_token=SIGNED_TOKEN
+```
+
+The app must verify `portal_token`, create a local app session, remove the token from the visible URL, and continue to the dashboard.
+
+## Portal SSO token contract
+
+The portal sends an `HS256` signed JWT in the `portal_token` query parameter.
+
+Claims:
+
+```json
+{
+  "iss": "via-portal",
+  "aud": "app-slug",
+  "email": "staff@via-int.com",
+  "name": "Staff Name",
+  "appSlug": "app-slug",
+  "iat": 1234567890,
+  "exp": 1234568010
+}
+```
+
+Verification requirements:
+
+- Verify the signature with `PORTAL_SSO_SECRET`.
+- Verify `iss` is `via-portal`.
+- Verify `aud` matches this app's slug.
+- Verify `exp` has not passed.
+- Match or create the local user by `email`.
+- Start the app's normal server-side session.
+- Redirect to the same page without `portal_token` in the URL.
+
+Direct app login rule:
+
+- If no local session exists, redirect to the portal.
+- Do not show username/password login to VIA staff.
+- Keep only a separate emergency admin login if required.
+
 ## Recommended integration model
 
 Use Google Workspace as the source of identity and the VIA Portal as the access gateway.

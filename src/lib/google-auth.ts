@@ -1,12 +1,14 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { getVisibleApps } from "./portal-store";
 
 type AuthConfig = {
   clientId: string;
   clientSecret: string;
   redirectUri: string;
   sessionSecret: string;
+  ssoSecret: string;
   allowedDomain?: string;
   adminEmails: string[];
 };
@@ -40,7 +42,9 @@ type GoogleTokenInfo = {
 
 const sessionCookieName = "via_portal_session";
 const stateCookieName = "via_google_oauth_state";
+const returnToCookieName = "via_portal_return_to";
 const sessionMaxAgeSeconds = 60 * 60 * 8;
+const ssoTokenMaxAgeSeconds = 60 * 2;
 
 let loadedLocalEnv = false;
 
@@ -49,7 +53,8 @@ export function isAuthRoute(pathname: string) {
     pathname === "/auth/google" ||
     pathname === "/auth/google/callback" ||
     pathname === "/auth/signout" ||
-    pathname === "/auth/session";
+    pathname === "/auth/session" ||
+    pathname === "/sso/launch";
 }
 
 export async function handleAuthRoute(request: Request): Promise<Response> {
@@ -82,6 +87,10 @@ export async function handleAuthRoute(request: Request): Promise<Response> {
   if (url.pathname === "/auth/session") {
     const session = getPortalSession(request);
     return Response.json({ user: session ? toPublicSession(session) : null });
+  }
+
+  if (url.pathname === "/sso/launch") {
+    return launchApplication(request);
   }
 
   return new Response("Not found", { status: 404 });
@@ -352,7 +361,9 @@ export function renderSignInPage(request: Request) {
 
 async function startGoogleSignIn(request: Request) {
   const config = getAuthConfig(request);
+  const url = new URL(request.url);
   const state = randomBytes(24).toString("base64url");
+  const returnTo = normalizeReturnTo(url.searchParams.get("returnTo"));
   const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
 
   authUrl.searchParams.set("client_id", config.clientId);
@@ -366,7 +377,7 @@ async function startGoogleSignIn(request: Request) {
     authUrl.searchParams.set("hd", config.allowedDomain);
   }
 
-  return redirect(authUrl.toString(), [
+  const cookies = [
     serializeCookie(stateCookieName, state, {
       httpOnly: true,
       maxAge: 10 * 60,
@@ -374,7 +385,21 @@ async function startGoogleSignIn(request: Request) {
       sameSite: "Lax",
       secure: isSecureRequest(request),
     }),
-  ]);
+  ];
+
+  if (returnTo) {
+    cookies.push(
+      serializeCookie(returnToCookieName, returnTo, {
+        httpOnly: true,
+        maxAge: 10 * 60,
+        path: "/",
+        sameSite: "Lax",
+        secure: isSecureRequest(request),
+      }),
+    );
+  }
+
+  return redirect(authUrl.toString(), cookies);
 }
 
 async function completeGoogleSignIn(request: Request) {
@@ -383,6 +408,7 @@ async function completeGoogleSignIn(request: Request) {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const expectedState = getCookie(request, stateCookieName);
+  const returnTo = getCookie(request, returnToCookieName);
 
   if (!code || !state || !expectedState || !safeEqual(state, expectedState)) {
     return new Response("Invalid Google sign-in state.", { status: 400 });
@@ -427,7 +453,16 @@ async function completeGoogleSignIn(request: Request) {
   const encodedSession = base64UrlEncode(JSON.stringify(session));
   const signedSession = `${encodedSession}.${signValue(encodedSession, config.sessionSecret)}`;
 
-  return redirect("/", [
+  const destination = returnTo
+    ? await getSsoRedirectUrl({
+        email: session.email,
+        name: session.name,
+        returnTo,
+        config,
+      })
+    : "/";
+
+  return redirect(destination, [
     serializeCookie(sessionCookieName, signedSession, {
       httpOnly: true,
       maxAge: sessionMaxAgeSeconds,
@@ -442,7 +477,47 @@ async function completeGoogleSignIn(request: Request) {
       sameSite: "Lax",
       secure: isSecureRequest(request),
     }),
+    serializeCookie(returnToCookieName, "", {
+      httpOnly: true,
+      maxAge: 0,
+      path: "/",
+      sameSite: "Lax",
+      secure: isSecureRequest(request),
+    }),
   ]);
+}
+
+async function launchApplication(request: Request) {
+  const session = getPortalSession(request);
+  const url = new URL(request.url);
+  const appId = url.searchParams.get("app");
+  const returnTo = normalizeReturnTo(url.searchParams.get("returnTo"));
+
+  if (!session) {
+    const fallback = returnTo ?? "/";
+    return redirect(`/auth/google?returnTo=${encodeURIComponent(fallback)}`);
+  }
+
+  const apps = await getVisibleApps(session.email);
+  const app = appId
+    ? apps.find((candidate) => candidate.id === appId || candidate.slug === appId)
+    : apps.find((candidate) => returnTo && isAllowedReturnTo(returnTo, candidate.url));
+
+  if (!app || app.url === "#") {
+    return redirect("/");
+  }
+
+  const destination = returnTo && isAllowedReturnTo(returnTo, app.url)
+    ? returnTo
+    : app.url;
+
+  const config = getAuthConfig(request);
+  return redirect(await getSsoRedirectUrl({
+    email: session.email,
+    name: session.name,
+    returnTo: destination,
+    config,
+  }));
 }
 
 async function verifyGoogleIdentity(idToken: string, config: AuthConfig) {
@@ -495,6 +570,7 @@ function getOptionalAuthConfig(request: Request): AuthConfig | null {
     clientId,
     clientSecret,
     sessionSecret,
+    ssoSecret: process.env.PORTAL_SSO_SECRET ?? sessionSecret,
     redirectUri:
       process.env.GOOGLE_REDIRECT_URI ??
       new URL("/auth/google/callback", request.url).toString(),
@@ -541,6 +617,97 @@ function toPublicSession(session: PortalSession) {
     hd: session.hd,
     isAdmin: isPortalAdmin(session.email),
   };
+}
+
+async function getSsoRedirectUrl({
+  email,
+  name,
+  returnTo,
+  config,
+}: {
+  email: string;
+  name?: string;
+  returnTo: string;
+  config: AuthConfig;
+}) {
+  const apps = await getVisibleApps(email);
+  const app = apps.find((candidate) => isAllowedReturnTo(returnTo, candidate.url));
+
+  if (!app || app.url === "#") {
+    return "/";
+  }
+
+  const destination = new URL(returnTo);
+  destination.searchParams.set(
+    "portal_token",
+    createSsoToken({
+      secret: config.ssoSecret,
+      audience: app.slug,
+      payload: {
+        email,
+        name,
+        appSlug: app.slug,
+      },
+    }),
+  );
+  return destination.toString();
+}
+
+function createSsoToken({
+  secret,
+  audience,
+  payload,
+}: {
+  secret: string;
+  audience: string;
+  payload: { email: string; name?: string; appSlug: string };
+}) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = base64UrlEncode(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const body = base64UrlEncode(
+    JSON.stringify({
+      iss: "via-portal",
+      aud: audience,
+      email: payload.email,
+      name: payload.name,
+      appSlug: payload.appSlug,
+      iat: now,
+      exp: now + ssoTokenMaxAgeSeconds,
+    }),
+  );
+  const unsignedToken = `${header}.${body}`;
+  return `${unsignedToken}.${signValue(unsignedToken, secret)}`;
+}
+
+function normalizeReturnTo(value: string | null) {
+  if (!value) return null;
+
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function isAllowedReturnTo(returnTo: string, appUrl: string) {
+  if (appUrl === "#") return false;
+
+  try {
+    const target = new URL(returnTo);
+    const app = new URL(appUrl);
+    const appPath = app.pathname.endsWith("/")
+      ? app.pathname
+      : `${app.pathname}/`;
+    const targetPath = target.pathname.endsWith("/")
+      ? target.pathname
+      : `${target.pathname}/`;
+
+    return target.origin === app.origin && targetPath.startsWith(appPath);
+  } catch {
+    return false;
+  }
 }
 
 function parseCsv(value: string | undefined) {

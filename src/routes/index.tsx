@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -303,7 +303,7 @@ function AppTile({ app }: { app: PortalApp }) {
 
   return (
     <a
-      href={app.url}
+      href={`/sso/launch?app=${encodeURIComponent(app.id)}`}
       className="group relative min-h-[190px] overflow-hidden rounded-[10px] border border-[#dfe8f3] bg-white p-5 shadow-[0_18px_50px_rgba(13,43,79,0.06)] transition duration-300 hover:-translate-y-0.5 hover:border-[var(--via-blue)]/28 hover:shadow-[0_24px_70px_rgba(13,43,79,0.1)]"
     >
       <span className={`absolute inset-x-0 top-0 h-1 ${style.line}`} />

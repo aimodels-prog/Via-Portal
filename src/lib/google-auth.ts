@@ -457,6 +457,7 @@ async function completeGoogleSignIn(request: Request) {
     ? await getSsoRedirectUrl({
         email: session.email,
         name: session.name,
+        role: isPortalAdmin(session.email) ? "admin" : "user",
         returnTo,
         config,
       })
@@ -515,6 +516,7 @@ async function launchApplication(request: Request) {
   return redirect(await getSsoRedirectUrl({
     email: session.email,
     name: session.name,
+    role: isPortalAdmin(session.email) ? "admin" : "user",
     returnTo: destination,
     config,
   }));
@@ -622,11 +624,13 @@ function toPublicSession(session: PortalSession) {
 async function getSsoRedirectUrl({
   email,
   name,
+  role,
   returnTo,
   config,
 }: {
   email: string;
   name?: string;
+  role: string;
   returnTo: string;
   config: AuthConfig;
 }) {
@@ -642,11 +646,12 @@ async function getSsoRedirectUrl({
     "portal_token",
     createSsoToken({
       secret: config.ssoSecret,
-      audience: app.slug,
+      audience: getAppTokenAudience(app),
       payload: {
         email,
         name,
-        appSlug: app.slug,
+        role,
+        appSlug: getAppTokenAudience(app),
       },
     }),
   );
@@ -660,23 +665,35 @@ function createSsoToken({
 }: {
   secret: string;
   audience: string;
-  payload: { email: string; name?: string; appSlug: string };
+  payload: { email: string; name?: string; role: string; appSlug: string };
 }) {
-  const now = Math.floor(Date.now() / 1000);
   const header = base64UrlEncode(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const body = base64UrlEncode(
     JSON.stringify({
       iss: "via-portal",
       aud: audience,
+      appSlug: payload.appSlug,
       email: payload.email,
       name: payload.name,
-      appSlug: payload.appSlug,
-      iat: now,
-      exp: now + ssoTokenMaxAgeSeconds,
+      role: payload.role,
+      exp: Math.floor(Date.now() / 1000) + ssoTokenMaxAgeSeconds,
     }),
   );
   const unsignedToken = `${header}.${body}`;
   return `${unsignedToken}.${signValue(unsignedToken, secret)}`;
+}
+
+function getAppTokenAudience(app: { slug: string; name: string; url: string }) {
+  if (
+    app.slug === "ai-vendor" ||
+    app.slug === "via-ai-vendor-app" ||
+    app.name.toLowerCase().includes("vendor") ||
+    app.url.includes("vendorapp.via-int.it")
+  ) {
+    return "via-ai-vendor-app";
+  }
+
+  return app.slug;
 }
 
 function normalizeReturnTo(value: string | null) {

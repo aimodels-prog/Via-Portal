@@ -685,12 +685,14 @@ function createSsoToken({
 
 function getAppTokenAudience(app: { slug: string; name: string; url: string }) {
   if (
+    app.slug === "via-cv" ||
     app.slug === "tender-cv" ||
     app.slug === "via-cv-generation" ||
+    app.name.toLowerCase() === "via cv tool" ||
     app.name.toLowerCase().includes("cv") ||
-    app.url.includes("cv")
+    app.url.includes("cvtool.via-int.com")
   ) {
-    return "via-cv-generation";
+    return "via-cv";
   }
 
   if (

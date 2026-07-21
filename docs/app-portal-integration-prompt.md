@@ -114,6 +114,36 @@ Direct app login rule:
 - Do not show username/password login to VIA staff.
 - Keep only a separate emergency admin login if required.
 
+## VIA CV Tool settings
+
+Use these exact values for the VIA CV Tool:
+
+| Field | Value |
+| --- | --- |
+| Application name | VIA CV Tool |
+| Production URL | `https://cvtool.via-int.com` |
+| Allowed origin | `https://cvtool.via-int.com` |
+| Callback URL | `https://cvtool.via-int.com/dashboard` |
+| App slug | `via-cv` |
+| Audience | `via-cv` |
+| Issuer | `via-portal` |
+| JWT algorithm | `HS256` |
+| Allowed email domain | `via-int.com` |
+
+Expected token claims for VIA CV Tool:
+
+```json
+{
+  "iss": "via-portal",
+  "aud": "via-cv",
+  "appSlug": "via-cv",
+  "email": "user@via-int.com",
+  "name": "User Name",
+  "role": "user",
+  "exp": 1234567890
+}
+```
+
 ## Recommended integration model
 
 Use Google Workspace as the source of identity and the VIA Portal as the access gateway.

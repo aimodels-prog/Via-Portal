@@ -49,12 +49,14 @@ const ssoTokenMaxAgeSeconds = 60 * 2;
 let loadedLocalEnv = false;
 
 export function isAuthRoute(pathname: string) {
-  return pathname === "/auth/signin" ||
+  return (
+    pathname === "/auth/signin" ||
     pathname === "/auth/google" ||
     pathname === "/auth/google/callback" ||
     pathname === "/auth/signout" ||
     pathname === "/auth/session" ||
-    pathname === "/sso/launch";
+    pathname === "/sso/launch"
+  );
 }
 
 export async function handleAuthRoute(request: Request): Promise<Response> {
@@ -124,6 +126,10 @@ export function renderSignInPage(request: Request) {
   const config = getOptionalAuthConfig(request);
   const missingConfig = !config;
   const allowedDomain = config?.allowedDomain;
+  const requestedReturnTo = normalizeReturnTo(new URL(request.url).searchParams.get("returnTo"));
+  const googleSignInUrl = requestedReturnTo
+    ? `/auth/google?returnTo=${encodeURIComponent(requestedReturnTo)}`
+    : "/auth/google";
 
   return new Response(
     `<!doctype html>
@@ -341,7 +347,7 @@ export function renderSignInPage(request: Request) {
             ${
               missingConfig
                 ? `<div class="notice">Google sign-in is not configured yet. Add GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI, and AUTH_SECRET.</div>`
-                : `<a class="button" href="/auth/google"><span class="g">G</span>Continue with Google</a>`
+                : `<a class="button" href="${escapeHtml(googleSignInUrl)}"><span class="g">G</span>Continue with VIA Workspace</a>`
             }
             ${allowedDomain ? `<div class="domain">${escapeHtml(allowedDomain)}</div>` : ""}
             <p class="fine-print">Protected portal for VIA International staff.</p>
@@ -496,7 +502,7 @@ async function launchApplication(request: Request) {
 
   if (!session) {
     const fallback = returnTo ?? "/";
-    return redirect(`/auth/google?returnTo=${encodeURIComponent(fallback)}`);
+    return redirect(`/auth/signin?returnTo=${encodeURIComponent(fallback)}`);
   }
 
   const apps = await getVisibleApps(session.email);
@@ -508,18 +514,18 @@ async function launchApplication(request: Request) {
     return redirect("/");
   }
 
-  const destination = returnTo && isAllowedReturnTo(returnTo, app.url)
-    ? returnTo
-    : app.url;
+  const destination = returnTo && isAllowedReturnTo(returnTo, app.url) ? returnTo : app.url;
 
   const config = getAuthConfig(request);
-  return redirect(await getSsoRedirectUrl({
-    email: session.email,
-    name: session.name,
-    role: isPortalAdmin(session.email) ? "admin" : "user",
-    returnTo: destination,
-    config,
-  }));
+  return redirect(
+    await getSsoRedirectUrl({
+      email: session.email,
+      name: session.name,
+      role: isPortalAdmin(session.email) ? "admin" : "user",
+      returnTo: destination,
+      config,
+    }),
+  );
 }
 
 async function verifyGoogleIdentity(idToken: string, config: AuthConfig) {
@@ -529,7 +535,9 @@ async function verifyGoogleIdentity(idToken: string, config: AuthConfig) {
   const payload = (await response.json()) as GoogleTokenInfo;
 
   if (!response.ok || payload.error) {
-    throw new Error(payload.error_description ?? payload.error ?? "Google identity verification failed.");
+    throw new Error(
+      payload.error_description ?? payload.error ?? "Google identity verification failed.",
+    );
   }
 
   const emailVerified = payload.email_verified === true || payload.email_verified === "true";
@@ -574,8 +582,7 @@ function getOptionalAuthConfig(request: Request): AuthConfig | null {
     sessionSecret,
     ssoSecret: process.env.PORTAL_SSO_SECRET ?? sessionSecret,
     redirectUri:
-      process.env.GOOGLE_REDIRECT_URI ??
-      new URL("/auth/google/callback", request.url).toString(),
+      process.env.GOOGLE_REDIRECT_URI ?? new URL("/auth/google/callback", request.url).toString(),
     allowedDomain: process.env.GOOGLE_WORKSPACE_DOMAIN ?? process.env.ALLOWED_EMAIL_DOMAIN,
     adminEmails: parseCsv(process.env.ADMIN_EMAILS),
   };
@@ -604,7 +611,10 @@ function loadLocalEnv() {
     if (separatorIndex === -1) continue;
 
     const key = trimmed.slice(0, separatorIndex).trim();
-    const value = trimmed.slice(separatorIndex + 1).trim().replace(/^['"]|['"]$/g, "");
+    const value = trimmed
+      .slice(separatorIndex + 1)
+      .trim()
+      .replace(/^['"]|['"]$/g, "");
     if (key && process.env[key] == null) {
       process.env[key] = value;
     }
@@ -725,12 +735,8 @@ function isAllowedReturnTo(returnTo: string, appUrl: string) {
   try {
     const target = new URL(returnTo);
     const app = new URL(appUrl);
-    const appPath = app.pathname.endsWith("/")
-      ? app.pathname
-      : `${app.pathname}/`;
-    const targetPath = target.pathname.endsWith("/")
-      ? target.pathname
-      : `${target.pathname}/`;
+    const appPath = app.pathname.endsWith("/") ? app.pathname : `${app.pathname}/`;
+    const targetPath = target.pathname.endsWith("/") ? target.pathname : `${target.pathname}/`;
 
     return target.origin === app.origin && targetPath.startsWith(appPath);
   } catch {
@@ -797,8 +803,9 @@ function signValue(value: string, secret: string) {
 function safeEqual(value: string, expected: string) {
   const valueBuffer = Buffer.from(value);
   const expectedBuffer = Buffer.from(expected);
-  return valueBuffer.length === expectedBuffer.length &&
-    timingSafeEqual(valueBuffer, expectedBuffer);
+  return (
+    valueBuffer.length === expectedBuffer.length && timingSafeEqual(valueBuffer, expectedBuffer)
+  );
 }
 
 function base64UrlEncode(value: string) {

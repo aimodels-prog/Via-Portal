@@ -1,17 +1,27 @@
 import { getPortalSession, isPortalAdmin } from "./google-auth";
 import {
   createApp,
+  createStaffProfile,
   deleteApp,
+  deleteStaffProfile,
   getAllApps,
+  getAllStaffProfiles,
+  getStaffProfile,
   getVisibleApps,
   updateApp,
+  updateStaffProfile,
   type AppInput,
+  type StaffProfileInput,
 } from "./portal-store";
 
 export function isPortalApiRoute(pathname: string) {
-  return pathname === "/api/apps" ||
+  return (
+    pathname === "/api/apps" ||
     pathname === "/api/admin/apps" ||
-    pathname.startsWith("/api/admin/apps/");
+    pathname.startsWith("/api/admin/apps/") ||
+    pathname === "/api/admin/staff" ||
+    pathname.startsWith("/api/admin/staff/")
+  );
 }
 
 export async function handlePortalApi(request: Request) {
@@ -24,13 +34,19 @@ export async function handlePortalApi(request: Request) {
 
   if (url.pathname === "/api/apps" && request.method === "GET") {
     try {
+      const [apps, staffProfile] = await Promise.all([
+        getVisibleApps(session.email),
+        getStaffProfile(session.email),
+      ]);
       return json({
-        apps: await getVisibleApps(session.email),
+        apps,
         user: {
           email: session.email,
           name: session.name,
           picture: session.picture,
           isAdmin: isPortalAdmin(session.email),
+          jobTitle: staffProfile?.status === "active" ? staffProfile.jobTitle : "Staff",
+          department: staffProfile?.status === "active" ? staffProfile.department : "",
         },
       });
     } catch (error) {
@@ -60,7 +76,46 @@ export async function handlePortalApi(request: Request) {
     }
   }
 
-  const appId = url.pathname.replace("/api/admin/apps/", "");
+  if (url.pathname === "/api/admin/staff" && request.method === "GET") {
+    try {
+      return json({ staff: await getAllStaffProfiles() });
+    } catch (error) {
+      console.error(error);
+      return json({ error: getErrorMessage(error) }, 500);
+    }
+  }
+
+  if (url.pathname === "/api/admin/staff" && request.method === "POST") {
+    try {
+      return json({ profile: await createStaffProfile(await readStaffProfileInput(request)) }, 201);
+    } catch (error) {
+      return json({ error: getErrorMessage(error) }, 400);
+    }
+  }
+
+  if (url.pathname.startsWith("/api/admin/staff/")) {
+    const profileId = url.pathname.replace("/api/admin/staff/", "");
+
+    if (profileId && request.method === "PUT") {
+      try {
+        const profile = await updateStaffProfile(profileId, await readStaffProfileInput(request));
+        if (!profile) return json({ error: "Staff profile not found." }, 404);
+        return json({ profile });
+      } catch (error) {
+        return json({ error: getErrorMessage(error) }, 400);
+      }
+    }
+
+    if (profileId && request.method === "DELETE") {
+      return (await deleteStaffProfile(profileId))
+        ? json({ ok: true })
+        : json({ error: "Staff profile not found." }, 404);
+    }
+  }
+
+  const appId = url.pathname.startsWith("/api/admin/apps/")
+    ? url.pathname.replace("/api/admin/apps/", "")
+    : "";
 
   if (appId && request.method === "PUT") {
     try {
@@ -73,12 +128,23 @@ export async function handlePortalApi(request: Request) {
   }
 
   if (appId && request.method === "DELETE") {
-    return await deleteApp(appId)
+    return (await deleteApp(appId))
       ? json({ ok: true })
       : json({ error: "Application not found." }, 404);
   }
 
   return json({ error: "Not found." }, 404);
+}
+
+async function readStaffProfileInput(request: Request): Promise<StaffProfileInput> {
+  const body = (await request.json()) as StaffProfileInput;
+  return {
+    email: body.email,
+    name: body.name,
+    jobTitle: body.jobTitle,
+    department: body.department,
+    status: body.status,
+  };
 }
 
 async function readAppInput(request: Request): Promise<AppInput> {

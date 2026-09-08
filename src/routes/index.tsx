@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
 import {
   ArrowRight,
   FileText,
@@ -17,8 +18,7 @@ export const Route = createFileRoute("/")({
       { title: "VIA Portal" },
       {
         name: "description",
-        content:
-          "A secure application portal for VIA International staff.",
+        content: "A secure application portal for VIA International staff.",
       },
       { property: "og:title", content: "VIA Portal" },
       {
@@ -27,6 +27,7 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
+  loader: () => loadPortalData(),
   component: Portal,
 });
 
@@ -34,6 +35,8 @@ type PortalUser = {
   email: string;
   name?: string;
   isAdmin: boolean;
+  jobTitle: string;
+  department: string;
 };
 
 type PortalApp = {
@@ -44,6 +47,39 @@ type PortalApp = {
   icon: "file" | "sparkles" | "app";
   accent: "blue" | "green" | "red";
 };
+
+type PortalData = {
+  user: PortalUser;
+  apps: PortalApp[];
+};
+
+const loadPortalData = createServerFn({ method: "GET" }).handler(async () => {
+  const [{ getRequest }, { getPortalSession }, { getStaffProfile, getVisibleApps }] =
+    await Promise.all([
+      import("@tanstack/react-start/server"),
+      import("../lib/google-auth"),
+      import("../lib/portal-store"),
+    ]);
+  const session = getPortalSession(getRequest());
+
+  if (!session) return null;
+
+  const [apps, staffProfile] = await Promise.all([
+    getVisibleApps(session.email),
+    getStaffProfile(session.email),
+  ]);
+
+  return {
+    user: {
+      email: session.email,
+      name: session.name,
+      isAdmin: (await import("../lib/google-auth")).isPortalAdmin(session.email),
+      jobTitle: staffProfile?.status === "active" ? staffProfile.jobTitle : "Staff",
+      department: staffProfile?.status === "active" ? staffProfile.department : "",
+    },
+    apps,
+  } satisfies PortalData;
+});
 
 const accentMap: Record<
   PortalApp["accent"],
@@ -76,13 +112,13 @@ const iconMap = {
 };
 
 function Portal() {
-  const [state, setState] = useState<{
-    user: PortalUser;
-    apps: PortalApp[];
-  }>();
+  const initialState = Route.useLoaderData();
+  const [state, setState] = useState<PortalData | undefined>(initialState ?? undefined);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (initialState) return;
+
     fetch("/api/apps")
       .then(async (response) => {
         if (response.status === 401) {
@@ -95,13 +131,13 @@ function Portal() {
         }
         return payload;
       })
-      .then((payload: { user: PortalUser; apps: PortalApp[] } | null) => {
+      .then((payload: PortalData | null) => {
         if (payload) setState(payload);
       })
       .catch((loadError) => {
         setError(loadError instanceof Error ? loadError.message : "Unable to load portal.");
       });
-  }, []);
+  }, [initialState]);
 
   if (error) {
     return <PortalMessage title="Portal could not load" message={error} />;
@@ -109,11 +145,7 @@ function Portal() {
 
   if (!state) {
     return (
-      <PortalMessage
-        title="Opening workspace"
-        message="Checking your secure session."
-        loading
-      />
+      <PortalMessage title="Opening workspace" message="Checking your secure session." loading />
     );
   }
 
@@ -130,11 +162,7 @@ function Portal() {
       <header className="sticky top-0 z-20 border-b border-[#dfe8f3] bg-white/88 backdrop-blur-xl">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8">
           <a href="/" className="flex items-center">
-            <img
-              src="/via-logo.png"
-              alt="VIA International"
-              className="h-12 w-auto"
-            />
+            <img src="/via-logo.png" alt="VIA International" className="h-12 w-auto" />
           </a>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -225,9 +253,7 @@ function Portal() {
             ) : (
               <div className="rounded-[10px] border border-dashed border-[#cfdced] bg-white p-8 text-center">
                 <Monitor className="mx-auto mb-3 h-8 w-8 text-[#8b97aa]" />
-                <h3 className="text-base font-semibold text-[#08172f]">
-                  No apps assigned yet
-                </h3>
+                <h3 className="text-base font-semibold text-[#08172f]">No apps assigned yet</h3>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#69758b]">
                   A portal admin can assign software to your account.
                 </p>
@@ -244,7 +270,13 @@ function Portal() {
             <div className="mt-5 space-y-4">
               <StatusLine label="Identity" value="Google" tone="blue" />
               <StatusLine label="Workspace" value="via-int.com" tone="green" />
-              <StatusLine label="Role" value={user.isAdmin ? "Admin" : "Staff"} tone="red" />
+              <StatusLine label="Role" value={user.jobTitle} tone="red" />
+              {user.department ? (
+                <StatusLine label="Department" value={user.department} tone="blue" />
+              ) : null}
+              {user.isAdmin ? (
+                <StatusLine label="Portal access" value="Admin" tone="green" />
+              ) : null}
             </div>
           </section>
 
@@ -273,7 +305,9 @@ function PortalMessage({
     <div className="flex min-h-screen items-center justify-center bg-[#f6f9fc] px-6">
       <div className="w-full max-w-md rounded-[10px] border border-[#dfe8f3] bg-white p-7 text-center shadow-[0_24px_70px_rgba(13,43,79,0.08)]">
         <img src="/via-logo.png" alt="VIA International" className="mx-auto mb-8 h-14 w-auto" />
-        <Monitor className={`mx-auto mb-4 h-7 w-7 text-[var(--via-blue)] ${loading ? "animate-pulse" : ""}`} />
+        <Monitor
+          className={`mx-auto mb-4 h-7 w-7 text-[var(--via-blue)] ${loading ? "animate-pulse" : ""}`}
+        />
         <h1 className="text-xl font-semibold text-[#08172f]">{title}</h1>
         <p className="mt-2 text-sm leading-6 text-[#69758b]">{message}</p>
         {!loading ? (
@@ -308,7 +342,9 @@ function AppTile({ app }: { app: PortalApp }) {
     >
       <span className={`absolute inset-x-0 top-0 h-1 ${style.line}`} />
       <div className="flex items-start justify-between gap-4">
-        <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${style.bg} ${style.text} ring-1 ${style.ring}`}>
+        <div
+          className={`flex h-12 w-12 items-center justify-center rounded-lg ${style.bg} ${style.text} ring-1 ${style.ring}`}
+        >
           <Icon className="h-6 w-6" />
         </div>
         <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#e3ebf5] text-[#7a879a] transition group-hover:border-[var(--via-blue)]/30 group-hover:text-[var(--via-blue)]">
@@ -316,9 +352,7 @@ function AppTile({ app }: { app: PortalApp }) {
         </span>
       </div>
       <div className="mt-7">
-        <h3 className="text-lg font-semibold tracking-normal text-[#08172f]">
-          {app.name}
-        </h3>
+        <h3 className="text-lg font-semibold tracking-normal text-[#08172f]">{app.name}</h3>
         <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#69758b]">
           {app.description || "Open application"}
         </p>
@@ -330,12 +364,8 @@ function AppTile({ app }: { app: PortalApp }) {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[10px] border border-[#dfe8f3] bg-[#f7fafc] p-4">
-      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#69758b]">
-        {label}
-      </p>
-      <p className="mt-2 text-2xl font-semibold tracking-normal text-[#08172f]">
-        {value}
-      </p>
+      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#69758b]">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-normal text-[#08172f]">{value}</p>
     </div>
   );
 }

@@ -30,9 +30,29 @@ export type AppInput = {
   status?: PortalApp["status"];
 };
 
+export type StaffProfile = {
+  id: string;
+  email: string;
+  name: string;
+  jobTitle: string;
+  department: string;
+  status: "active" | "inactive";
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type StaffProfileInput = {
+  email: string;
+  name?: string;
+  jobTitle: string;
+  department?: string;
+  status?: StaffProfile["status"];
+};
+
 loadLocalEnv();
 
 const databaseUrl = process.env.DATABASE_URL;
+const databaseSsl = process.env.DATABASE_SSL?.trim().toLowerCase() !== "false";
 
 if (!databaseUrl) {
   throw new Error("DATABASE_URL is required.");
@@ -41,9 +61,7 @@ if (!databaseUrl) {
 const prisma = new PrismaClient({
   adapter: new PrismaPg({
     connectionString: getPgConnectionString(databaseUrl),
-    ssl: {
-      rejectUnauthorized: false,
-    },
+    ssl: databaseSsl ? { rejectUnauthorized: false } : false,
   }),
 });
 
@@ -83,10 +101,7 @@ export async function getVisibleApps(email: string) {
   const apps = await prisma.application.findMany({
     where: {
       status: "active",
-      OR: [
-        { visibleToAllStaff: true },
-        { visibleToEmails: { has: normalizedEmail } },
-      ],
+      OR: [{ visibleToAllStaff: true }, { visibleToEmails: { has: normalizedEmail } }],
     },
     orderBy: { name: "asc" },
   });
@@ -142,6 +157,55 @@ export async function deleteApp(id: string) {
   return true;
 }
 
+export async function getStaffProfile(email: string) {
+  await ensureSchema();
+  const profile = await prisma.staffProfile.findUnique({
+    where: { email: normalizeEmail(email) },
+  });
+  return profile ? toStaffProfile(profile) : null;
+}
+
+export async function getAllStaffProfiles() {
+  await ensureSchema();
+  const profiles = await prisma.staffProfile.findMany({
+    orderBy: [{ jobTitle: "asc" }, { email: "asc" }],
+  });
+  return profiles.map(toStaffProfile);
+}
+
+export async function createStaffProfile(input: StaffProfileInput) {
+  await ensureSchema();
+  const profile = normalizeStaffProfileInput(input);
+  const created = await prisma.staffProfile.create({
+    data: {
+      id: randomUUID(),
+      ...profile,
+    },
+  });
+  return toStaffProfile(created);
+}
+
+export async function updateStaffProfile(id: string, input: StaffProfileInput) {
+  await ensureSchema();
+  const existing = await prisma.staffProfile.findUnique({ where: { id } });
+  if (!existing) return null;
+
+  const updated = await prisma.staffProfile.update({
+    where: { id },
+    data: normalizeStaffProfileInput(input),
+  });
+  return toStaffProfile(updated);
+}
+
+export async function deleteStaffProfile(id: string) {
+  await ensureSchema();
+  const existing = await prisma.staffProfile.findUnique({ where: { id } });
+  if (!existing) return false;
+
+  await prisma.staffProfile.delete({ where: { id } });
+  return true;
+}
+
 async function ensureSeedApps() {
   await ensureSchema();
 
@@ -179,6 +243,24 @@ async function ensureSchema() {
     CREATE UNIQUE INDEX IF NOT EXISTS "Application_slug_key" ON "Application"("slug")
   `);
 
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "StaffProfile" (
+      "id" TEXT NOT NULL,
+      "email" TEXT NOT NULL,
+      "name" TEXT,
+      "jobTitle" TEXT NOT NULL DEFAULT 'Staff',
+      "department" TEXT,
+      "status" TEXT NOT NULL DEFAULT 'active',
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "StaffProfile_pkey" PRIMARY KEY ("id")
+    )
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    CREATE UNIQUE INDEX IF NOT EXISTS "StaffProfile_email_key" ON "StaffProfile"("email")
+  `);
+
   schemaReady = true;
 }
 
@@ -199,12 +281,7 @@ function normalizeInput(input: AppInput, slug: string) {
   return app;
 }
 
-function validateApp(app: {
-  url: string;
-  accent: string;
-  icon: string;
-  status: string;
-}) {
+function validateApp(app: { url: string; accent: string; icon: string; status: string }) {
   if (!["blue", "green", "red"].includes(app.accent)) {
     throw new Error("Invalid accent.");
   }
@@ -220,6 +297,29 @@ function validateApp(app: {
   if (app.url !== "#") {
     new URL(app.url);
   }
+}
+
+function normalizeStaffProfileInput(input: StaffProfileInput) {
+  const email = normalizeEmail(cleanRequired(input.email, "Staff email"));
+  const allowedDomain = process.env.GOOGLE_WORKSPACE_DOMAIN?.trim().toLowerCase();
+  if (!email.includes("@") || (allowedDomain && !email.endsWith(`@${allowedDomain}`))) {
+    throw new Error(
+      allowedDomain
+        ? `Staff email must belong to ${allowedDomain}.`
+        : "A valid staff email is required.",
+    );
+  }
+
+  const status = input.status ?? "active";
+  if (!isStaffStatus(status)) throw new Error("Invalid staff status.");
+
+  return {
+    email,
+    name: input.name?.trim() || null,
+    jobTitle: cleanRequired(input.jobTitle, "Job title"),
+    department: input.department?.trim() || null,
+    status,
+  };
 }
 
 function toPortalApp(app: {
@@ -252,6 +352,28 @@ function toPortalApp(app: {
   };
 }
 
+function toStaffProfile(profile: {
+  id: string;
+  email: string;
+  name: string | null;
+  jobTitle: string;
+  department: string | null;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+}): StaffProfile {
+  return {
+    id: profile.id,
+    email: profile.email,
+    name: profile.name ?? "",
+    jobTitle: profile.jobTitle,
+    department: profile.department ?? "",
+    status: isStaffStatus(profile.status) ? profile.status : "active",
+    createdAt: profile.createdAt.toISOString(),
+    updatedAt: profile.updatedAt.toISOString(),
+  };
+}
+
 function cleanRequired(value: string | undefined, label: string) {
   const cleaned = value?.trim();
   if (!cleaned) throw new Error(`${label} is required.`);
@@ -272,11 +394,13 @@ function createUniqueSlug(name: string, apps: Array<{ slug: string }>) {
 }
 
 function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "app";
+  return (
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "app"
+  );
 }
 
 function normalizeEmails(emails: string[]) {
@@ -295,6 +419,10 @@ function isAccent(value: string): value is PortalApp["accent"] {
   return value === "blue" || value === "green" || value === "red";
 }
 
+function isStaffStatus(value: string): value is StaffProfile["status"] {
+  return value === "active" || value === "inactive";
+}
+
 function loadLocalEnv() {
   const envPath = resolve(process.cwd(), ".env");
   if (!existsSync(envPath)) return;
@@ -308,7 +436,10 @@ function loadLocalEnv() {
     if (separatorIndex === -1) continue;
 
     const key = trimmed.slice(0, separatorIndex).trim();
-    const value = trimmed.slice(separatorIndex + 1).trim().replace(/^['"]|['"]$/g, "");
+    const value = trimmed
+      .slice(separatorIndex + 1)
+      .trim()
+      .replace(/^['"]|['"]$/g, "");
     if (key && process.env[key] == null) {
       process.env[key] = value;
     }

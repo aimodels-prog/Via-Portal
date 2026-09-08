@@ -1,7 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { getVisibleApps } from "./portal-store";
+import { getStaffProfile, getVisibleApps } from "./portal-store";
 
 type AuthConfig = {
   clientId: string;
@@ -644,7 +644,7 @@ async function getSsoRedirectUrl({
   returnTo: string;
   config: AuthConfig;
 }) {
-  const apps = await getVisibleApps(email);
+  const [apps, staffProfile] = await Promise.all([getVisibleApps(email), getStaffProfile(email)]);
   const app = apps.find((candidate) => isAllowedReturnTo(returnTo, candidate.url));
 
   if (!app || app.url === "#") {
@@ -662,6 +662,8 @@ async function getSsoRedirectUrl({
         name,
         role,
         appSlug: getAppTokenAudience(app),
+        jobTitle: staffProfile?.status === "active" ? staffProfile.jobTitle : "Staff",
+        department: staffProfile?.status === "active" ? staffProfile.department : undefined,
       },
     }),
   );
@@ -675,7 +677,14 @@ function createSsoToken({
 }: {
   secret: string;
   audience: string;
-  payload: { email: string; name?: string; role: string; appSlug: string };
+  payload: {
+    email: string;
+    name?: string;
+    role: string;
+    appSlug: string;
+    jobTitle?: string;
+    department?: string;
+  };
 }) {
   const header = base64UrlEncode(JSON.stringify({ alg: "HS256", typ: "JWT" }));
   const body = base64UrlEncode(
@@ -686,6 +695,8 @@ function createSsoToken({
       email: payload.email,
       name: payload.name,
       role: payload.role,
+      jobTitle: payload.jobTitle,
+      department: payload.department,
       exp: Math.floor(Date.now() / 1000) + ssoTokenMaxAgeSeconds,
     }),
   );

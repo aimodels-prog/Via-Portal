@@ -99,3 +99,15 @@ model UserAppAccess {
 
   @@unique([userId, applicationId])
 }
+
+model StaffProfile {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  name       String?
+  jobTitle   String   @default("Staff")
+  department String?
+  status     String   @default("active") // active, inactive
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

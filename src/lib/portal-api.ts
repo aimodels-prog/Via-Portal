@@ -8,6 +8,7 @@ import {
   getAllStaffProfiles,
   getStaffProfile,
   getVisibleApps,
+  registerPortalUser,
   updateApp,
   updateStaffProfile,
   type AppInput,
@@ -34,6 +35,12 @@ export async function handlePortalApi(request: Request) {
 
   if (url.pathname === "/api/apps" && request.method === "GET") {
     try {
+      await registerPortalUser({
+        email: session.email,
+        name: session.name,
+        picture: session.picture,
+        isAdmin: isPortalAdmin(session.email),
+      });
       const [apps, staffProfile] = await Promise.all([
         getVisibleApps(session.email),
         getStaffProfile(session.email),

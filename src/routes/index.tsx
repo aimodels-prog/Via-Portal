@@ -54,15 +54,26 @@ type PortalData = {
 };
 
 const loadPortalData = createServerFn({ method: "GET" }).handler(async () => {
-  const [{ getRequest }, { getPortalSession }, { getStaffProfile, getVisibleApps }] =
-    await Promise.all([
-      import("@tanstack/react-start/server"),
-      import("../lib/google-auth"),
-      import("../lib/portal-store"),
-    ]);
+  const [
+    { getRequest },
+    { getPortalSession, isPortalAdmin },
+    { getStaffProfile, getVisibleApps, registerPortalUser },
+  ] = await Promise.all([
+    import("@tanstack/react-start/server"),
+    import("../lib/google-auth"),
+    import("../lib/portal-store"),
+  ]);
   const session = getPortalSession(getRequest());
 
   if (!session) return null;
+
+  const isAdmin = isPortalAdmin(session.email);
+  await registerPortalUser({
+    email: session.email,
+    name: session.name,
+    picture: session.picture,
+    isAdmin,
+  });
 
   const [apps, staffProfile] = await Promise.all([
     getVisibleApps(session.email),
@@ -73,7 +84,7 @@ const loadPortalData = createServerFn({ method: "GET" }).handler(async () => {
     user: {
       email: session.email,
       name: session.name,
-      isAdmin: (await import("../lib/google-auth")).isPortalAdmin(session.email),
+      isAdmin,
       jobTitle: staffProfile?.status === "active" ? staffProfile.jobTitle : "Staff",
       department: staffProfile?.status === "active" ? staffProfile.department : "",
     },

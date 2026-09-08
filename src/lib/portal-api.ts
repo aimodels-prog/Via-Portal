@@ -144,6 +144,7 @@ async function readStaffProfileInput(request: Request): Promise<StaffProfileInpu
     jobTitle: body.jobTitle,
     department: body.department,
     status: body.status,
+    visibleAppIds: body.visibleAppIds,
   };
 }
 

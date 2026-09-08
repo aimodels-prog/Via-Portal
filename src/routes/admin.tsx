@@ -60,6 +60,7 @@ type StaffProfile = {
   jobTitle: string;
   department: string;
   status: "active" | "inactive";
+  visibleAppIds: string[];
 };
 
 type StaffFormState = {
@@ -69,6 +70,7 @@ type StaffFormState = {
   jobTitle: string;
   department: string;
   status: StaffProfile["status"];
+  visibleAppIds: string[];
 };
 
 const emptyForm: FormState = {
@@ -88,6 +90,7 @@ const emptyStaffForm: StaffFormState = {
   jobTitle: "",
   department: "",
   status: "active",
+  visibleAppIds: [],
 };
 
 const iconMap = {
@@ -583,6 +586,43 @@ function AdminPage() {
               </label>
             </div>
 
+            <fieldset className="border-t border-border pt-4 lg:col-span-2">
+              <legend className="text-sm font-semibold text-foreground">Application access</legend>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {apps.map((app) => {
+                  const availableToAll = app.visibleToAllStaff;
+                  const checked = availableToAll || staffForm.visibleAppIds.includes(app.id);
+                  return (
+                    <label
+                      key={app.id}
+                      className="flex min-h-11 items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm text-foreground"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={availableToAll}
+                        onChange={(event) =>
+                          setStaffForm({
+                            ...staffForm,
+                            visibleAppIds: event.target.checked
+                              ? [...staffForm.visibleAppIds, app.id]
+                              : staffForm.visibleAppIds.filter((id) => id !== app.id),
+                          })
+                        }
+                        className="h-4 w-4"
+                      />
+                      <span className="min-w-0">
+                        <span className="block truncate font-semibold">{app.name}</span>
+                        {availableToAll ? (
+                          <span className="block text-xs text-muted-foreground">All staff</span>
+                        ) : null}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+
             {staffError ? (
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive lg:col-span-2">
                 {staffError}
@@ -650,6 +690,11 @@ function AdminPage() {
                           {profile.department}
                         </span>
                       ) : null}
+                      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                        <Monitor className="h-4 w-4" />
+                        {profile.visibleAppIds.length} application
+                        {profile.visibleAppIds.length === 1 ? "" : "s"}
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

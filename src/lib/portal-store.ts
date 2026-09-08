@@ -37,6 +37,7 @@ export type StaffProfile = {
   jobTitle: string;
   department: string;
   status: "active" | "inactive";
+  visibleAppIds: string[];
   createdAt: string;
   updatedAt: string;
 };
@@ -47,6 +48,7 @@ export type StaffProfileInput = {
   jobTitle: string;
   department?: string;
   status?: StaffProfile["status"];
+  visibleAppIds?: string[];
 };
 
 export type PortalUserInput = {
@@ -194,10 +196,26 @@ export async function getAllStaffProfiles() {
     });
   }
 
-  const profiles = await prisma.staffProfile.findMany({
-    orderBy: [{ jobTitle: "asc" }, { email: "asc" }],
-  });
-  return profiles.map(toStaffProfile);
+  const [profiles, apps] = await Promise.all([
+    prisma.staffProfile.findMany({
+      orderBy: [{ jobTitle: "asc" }, { email: "asc" }],
+    }),
+    prisma.application.findMany({
+      select: { id: true, visibleToAllStaff: true, visibleToEmails: true },
+    }),
+  ]);
+  return profiles.map((profile) =>
+    toStaffProfile(
+      profile,
+      apps
+        .filter(
+          (app) =>
+            app.visibleToAllStaff ||
+            app.visibleToEmails.map(normalizeEmail).includes(normalizeEmail(profile.email)),
+        )
+        .map((app) => app.id),
+    ),
+  );
 }
 
 export async function registerPortalUser(input: PortalUserInput) {
@@ -244,7 +262,8 @@ export async function createStaffProfile(input: StaffProfileInput) {
       ...profile,
     },
   });
-  return toStaffProfile(created);
+  await setStaffAppVisibility(created.email, input.visibleAppIds ?? []);
+  return toStaffProfile(created, input.visibleAppIds ?? []);
 }
 
 export async function updateStaffProfile(id: string, input: StaffProfileInput) {
@@ -256,7 +275,8 @@ export async function updateStaffProfile(id: string, input: StaffProfileInput) {
     where: { id },
     data: normalizeStaffProfileInput(input),
   });
-  return toStaffProfile(updated);
+  await setStaffAppVisibility(updated.email, input.visibleAppIds ?? [], existing.email);
+  return toStaffProfile(updated, input.visibleAppIds ?? []);
 }
 
 export async function deleteStaffProfile(id: string) {
@@ -264,6 +284,7 @@ export async function deleteStaffProfile(id: string) {
   const existing = await prisma.staffProfile.findUnique({ where: { id } });
   if (!existing) return false;
 
+  await setStaffAppVisibility(existing.email, []);
   await prisma.staffProfile.delete({ where: { id } });
   return true;
 }
@@ -414,16 +435,19 @@ function toPortalApp(app: {
   };
 }
 
-function toStaffProfile(profile: {
-  id: string;
-  email: string;
-  name: string | null;
-  jobTitle: string;
-  department: string | null;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-}): StaffProfile {
+function toStaffProfile(
+  profile: {
+    id: string;
+    email: string;
+    name: string | null;
+    jobTitle: string;
+    department: string | null;
+    status: string;
+    createdAt: Date;
+    updatedAt: Date;
+  },
+  visibleAppIds: string[] = [],
+): StaffProfile {
   return {
     id: profile.id,
     email: profile.email,
@@ -431,9 +455,40 @@ function toStaffProfile(profile: {
     jobTitle: profile.jobTitle,
     department: profile.department ?? "",
     status: isStaffStatus(profile.status) ? profile.status : "active",
+    visibleAppIds,
     createdAt: profile.createdAt.toISOString(),
     updatedAt: profile.updatedAt.toISOString(),
   };
+}
+
+async function setStaffAppVisibility(
+  email: string,
+  visibleAppIds: string[],
+  previousEmail?: string,
+) {
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedPreviousEmail = previousEmail ? normalizeEmail(previousEmail) : normalizedEmail;
+  const selectedIds = new Set(visibleAppIds);
+  const restrictedApps = await prisma.application.findMany({
+    where: { visibleToAllStaff: false },
+    select: { id: true, visibleToEmails: true },
+  });
+
+  await prisma.$transaction(
+    restrictedApps.map((app) => {
+      const emails = app.visibleToEmails
+        .map(normalizeEmail)
+        .filter(
+          (candidate) => candidate !== normalizedEmail && candidate !== normalizedPreviousEmail,
+        );
+      if (selectedIds.has(app.id)) emails.push(normalizedEmail);
+
+      return prisma.application.update({
+        where: { id: app.id },
+        data: { visibleToEmails: [...new Set(emails)] },
+      });
+    }),
+  );
 }
 
 function cleanRequired(value: string | undefined, label: string) {

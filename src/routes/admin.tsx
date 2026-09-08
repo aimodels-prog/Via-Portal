@@ -8,6 +8,7 @@ import {
   LoaderCircle,
   Monitor,
   Save,
+  Search,
   Sparkles,
   Trash2,
   UserPlus,
@@ -110,6 +111,7 @@ function AdminPage() {
   const [staffLoading, setStaffLoading] = useState(true);
   const [staffSaving, setStaffSaving] = useState(false);
   const [staffError, setStaffError] = useState("");
+  const [staffSearch, setStaffSearch] = useState("");
 
   useEffect(() => {
     loadApps();
@@ -272,6 +274,15 @@ function AdminPage() {
     }
     loadStaff();
   }
+
+  const normalizedStaffSearch = staffSearch.trim().toLowerCase();
+  const filteredStaff = normalizedStaffSearch
+    ? staff.filter((profile) =>
+        [profile.name, profile.email, profile.jobTitle, profile.department].some((value) =>
+          value.toLowerCase().includes(normalizedStaffSearch),
+        ),
+      )
+    : staff;
 
   return (
     <div className="min-h-screen px-6 py-8" style={{ background: "var(--gradient-subtle)" }}>
@@ -509,23 +520,42 @@ function AdminPage() {
           )}
         </section>
 
-        <section id="staff-directory" className="mt-12 border-t border-border pt-10">
-          <div className="mb-5 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--via-green)]/10 text-[var(--via-green)]">
-              <UsersRound className="h-5 w-5" />
+        <section id="staff-directory" className="mt-12 border-t border-border pb-12 pt-10">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--via-green)]/10 text-[var(--via-green)]">
+                <UsersRound className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold text-foreground">Staff directory</h2>
+                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                    {staff.length}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Manage roles and application access for VIA staff.
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl font-semibold text-foreground">Staff directory</h2>
-              <p className="text-sm text-muted-foreground">
-                Everyone who signs in with VIA Google Workspace appears here automatically.
-              </p>
+            <div className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <UsersRound className="h-5 w-5" />
+              Google Workspace directory
             </div>
           </div>
 
           <form
             onSubmit={saveStaff}
-            className="grid gap-4 border-y border-border bg-background py-5 lg:grid-cols-2"
+            className="grid gap-4 rounded-lg border border-border bg-background p-5 shadow-sm lg:grid-cols-2"
           >
+            <div className="lg:col-span-2">
+              <h3 className="font-semibold text-foreground">
+                {staffForm.id ? "Edit staff member" : "Add staff member"}
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Set the staff member's title, department, status, and software access.
+              </p>
+            </div>
             <label className="text-sm font-semibold text-foreground">
               Staff email
               <input
@@ -656,18 +686,42 @@ function AdminPage() {
             </div>
           </form>
 
-          <div className="mt-5 grid gap-3">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h3 className="font-semibold text-foreground">Team members</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Staff appear automatically after their first portal sign-in.
+              </p>
+            </div>
+            <label className="relative block w-full sm:w-72">
+              <span className="sr-only">Search staff</span>
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="search"
+                value={staffSearch}
+                onChange={(event) => setStaffSearch(event.target.value)}
+                className="h-10 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm outline-none focus:border-[var(--via-blue)]"
+                placeholder="Search staff"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 overflow-hidden rounded-lg border border-border bg-background">
             {staffLoading ? (
-              <div className="py-6 text-sm text-muted-foreground">Loading staff...</div>
+              <div className="p-6 text-sm text-muted-foreground">Loading staff...</div>
             ) : staff.length === 0 ? (
-              <div className="border border-dashed border-border bg-background p-6 text-center text-sm text-muted-foreground">
+              <div className="p-8 text-center text-sm text-muted-foreground">
                 No staff profiles yet.
               </div>
+            ) : filteredStaff.length === 0 ? (
+              <div className="p-8 text-center text-sm text-muted-foreground">
+                No staff match your search.
+              </div>
             ) : (
-              staff.map((profile) => (
+              filteredStaff.map((profile) => (
                 <article
                   key={profile.id}
-                  className="grid gap-4 border-b border-border bg-background py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+                  className="grid gap-4 border-b border-border px-5 py-4 last:border-b-0 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">

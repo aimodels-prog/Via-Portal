@@ -1,7 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { getStaffProfile, getVisibleApps } from "./portal-store";
+import { getStaffProfile, getVisibleApps, registerPortalUser } from "./portal-store";
 
 type AuthConfig = {
   clientId: string;
@@ -448,6 +448,21 @@ async function completeGoogleSignIn(request: Request) {
       status: 401,
     });
   }
+
+  try {
+    await registerPortalUser({
+      email: user.email,
+      name: user.name,
+      picture: user.picture,
+      isAdmin: isPortalAdmin(user.email),
+    });
+  } catch (error) {
+    console.error("Unable to register portal user", error);
+    return new Response("Your account was verified, but the portal could not load your profile.", {
+      status: 500,
+    });
+  }
+
   const now = Math.floor(Date.now() / 1000);
   const session: PortalSession = {
     email: user.email,

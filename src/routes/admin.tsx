@@ -513,7 +513,9 @@ function AdminPage() {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-foreground">Staff directory</h2>
-              <p className="text-sm text-muted-foreground">Manage staff titles and departments.</p>
+              <p className="text-sm text-muted-foreground">
+                Everyone who signs in with VIA Google Workspace appears here automatically.
+              </p>
             </div>
           </div>
 

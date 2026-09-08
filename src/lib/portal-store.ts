@@ -49,6 +49,13 @@ export type StaffProfileInput = {
   status?: StaffProfile["status"];
 };
 
+export type PortalUserInput = {
+  email: string;
+  name?: string;
+  picture?: string;
+  isAdmin?: boolean;
+};
+
 loadLocalEnv();
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -167,10 +174,65 @@ export async function getStaffProfile(email: string) {
 
 export async function getAllStaffProfiles() {
   await ensureSchema();
+
+  // Older portal users may predate the staff directory. Include them without
+  // replacing titles or departments that an administrator has already set.
+  const users = await prisma.user.findMany({
+    select: { email: true, name: true },
+  });
+  for (const user of users) {
+    await prisma.staffProfile.upsert({
+      where: { email: normalizeEmail(user.email) },
+      update: {},
+      create: {
+        id: randomUUID(),
+        email: normalizeEmail(user.email),
+        name: user.name,
+        jobTitle: "Staff",
+        status: "active",
+      },
+    });
+  }
+
   const profiles = await prisma.staffProfile.findMany({
     orderBy: [{ jobTitle: "asc" }, { email: "asc" }],
   });
   return profiles.map(toStaffProfile);
+}
+
+export async function registerPortalUser(input: PortalUserInput) {
+  await ensureSchema();
+  const email = normalizeEmail(input.email);
+  const name = input.name?.trim() || null;
+
+  await prisma.user.upsert({
+    where: { email },
+    update: {
+      name,
+      image: input.picture?.trim() || null,
+      emailVerified: new Date(),
+    },
+    create: {
+      id: randomUUID(),
+      email,
+      name,
+      image: input.picture?.trim() || null,
+      emailVerified: new Date(),
+      role: input.isAdmin ? "admin" : "user",
+    },
+  });
+
+  await prisma.staffProfile.upsert({
+    where: { email },
+    update: {},
+    create: {
+      id: randomUUID(),
+      email,
+      name,
+      jobTitle: "Staff",
+      status: "active",
+    },
+  });
 }
 
 export async function createStaffProfile(input: StaffProfileInput) {

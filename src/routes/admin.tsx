@@ -81,7 +81,7 @@ const emptyForm: FormState = {
   status: "active",
   icon: "app",
   accent: "blue",
-  visibleToAllStaff: true,
+  visibleToAllStaff: false,
   visibleToEmailsText: "",
 };
 
@@ -406,24 +406,8 @@ function AdminPage() {
                   }
                   className="h-4 w-4"
                 />
-                Visible to all staff
+                Available to all approved staff
               </label>
-
-              <div>
-                <label className="text-sm font-semibold text-foreground">Staff emails</label>
-                <textarea
-                  value={form.visibleToEmailsText}
-                  disabled={form.visibleToAllStaff}
-                  onChange={(event) =>
-                    setForm({ ...form, visibleToEmailsText: event.target.value })
-                  }
-                  className="mt-2 min-h-24 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:border-[var(--via-blue)] disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder={"name@company.com\nanother@company.com"}
-                />
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Turn off all-staff visibility to limit this software to listed emails.
-                </p>
-              </div>
 
               {error ? (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
@@ -488,11 +472,7 @@ function AdminPage() {
                       </span>
                       <span className="inline-flex items-center gap-1">
                         <UsersRound className="h-3.5 w-3.5" />
-                        {app.visibleToAllStaff
-                          ? "All staff"
-                          : `${app.visibleToEmails.length} staff member${
-                              app.visibleToEmails.length === 1 ? "" : "s"
-                            }`}
+                        {app.visibleToAllStaff ? "All approved staff" : "Assigned individually"}
                       </span>
                     </div>
                   </div>
@@ -540,7 +520,7 @@ function AdminPage() {
             </div>
             <div className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <UsersRound className="h-5 w-5" />
-              Google Workspace directory
+              Workspace accounts
             </div>
           </div>
 
@@ -643,9 +623,13 @@ function AdminPage() {
                       />
                       <span className="min-w-0">
                         <span className="block truncate font-semibold">{app.name}</span>
-                        {availableToAll ? (
-                          <span className="block text-xs text-muted-foreground">All staff</span>
-                        ) : null}
+                        <span className="block text-xs text-muted-foreground">
+                          {availableToAll
+                            ? "All approved staff"
+                            : app.status === "active"
+                              ? "Individual access"
+                              : "Inactive"}
+                        </span>
                       </span>
                     </label>
                   );
@@ -718,59 +702,64 @@ function AdminPage() {
                 No staff match your search.
               </div>
             ) : (
-              filteredStaff.map((profile) => (
-                <article
-                  key={profile.id}
-                  className="grid gap-4 border-b border-border px-5 py-4 last:border-b-0 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
-                >
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold text-foreground">
-                        {profile.name || profile.email}
-                      </h3>
-                      <span className="rounded-full border border-border px-2 py-0.5 text-xs font-semibold text-muted-foreground">
-                        {profile.status}
-                      </span>
-                    </div>
-                    <p className="mt-1 truncate text-sm text-muted-foreground">{profile.email}</p>
-                    <div className="mt-2 flex flex-wrap gap-4 text-sm">
-                      <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--via-blue)]">
-                        <BriefcaseBusiness className="h-4 w-4" />
-                        {profile.jobTitle}
-                      </span>
-                      {profile.department ? (
-                        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                          <Building2 className="h-4 w-4" />
-                          {profile.department}
+              filteredStaff.map((profile) => {
+                const visibleAppCount = apps.filter(
+                  (app) => app.visibleToAllStaff || profile.visibleAppIds.includes(app.id),
+                ).length;
+                return (
+                  <article
+                    key={profile.id}
+                    className="grid gap-4 border-b border-border px-5 py-4 last:border-b-0 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-semibold text-foreground">
+                          {profile.name || profile.email}
+                        </h3>
+                        <span className="rounded-full border border-border px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                          {profile.status}
                         </span>
-                      ) : null}
-                      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                        <Monitor className="h-4 w-4" />
-                        {profile.visibleAppIds.length} application
-                        {profile.visibleAppIds.length === 1 ? "" : "s"}
-                      </span>
+                      </div>
+                      <p className="mt-1 truncate text-sm text-muted-foreground">{profile.email}</p>
+                      <div className="mt-2 flex flex-wrap gap-4 text-sm">
+                        <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--via-blue)]">
+                          <BriefcaseBusiness className="h-4 w-4" />
+                          {profile.jobTitle}
+                        </span>
+                        {profile.department ? (
+                          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                            <Building2 className="h-4 w-4" />
+                            {profile.department}
+                          </span>
+                        ) : null}
+                        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                          <Monitor className="h-4 w-4" />
+                          {visibleAppCount} application
+                          {visibleAppCount === 1 ? "" : "s"}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => editStaff(profile)}
-                      className="inline-flex h-9 items-center rounded-lg border border-border bg-background px-3 text-sm font-semibold text-foreground"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeStaff(profile)}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:border-destructive/40 hover:text-destructive"
-                      aria-label={`Remove ${profile.email}`}
-                      title={`Remove ${profile.email}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </article>
-              ))
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => editStaff(profile)}
+                        className="inline-flex h-9 items-center rounded-lg border border-border bg-background px-3 text-sm font-semibold text-foreground"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeStaff(profile)}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground hover:border-destructive/40 hover:text-destructive"
+                        aria-label={`Remove ${profile.email}`}
+                        title={`Remove ${profile.email}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </article>
+                );
+              })
             )}
           </div>
         </section>

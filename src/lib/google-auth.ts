@@ -520,6 +520,12 @@ async function launchApplication(request: Request) {
     return redirect(`/auth/signin?returnTo=${encodeURIComponent(fallback)}`);
   }
 
+  await registerPortalUser({
+    email: session.email,
+    name: session.name,
+    picture: session.picture,
+    isAdmin: isPortalAdmin(session.email),
+  });
   const apps = await getVisibleApps(session.email);
   const app = appId
     ? apps.find((candidate) => candidate.id === appId || candidate.slug === appId)

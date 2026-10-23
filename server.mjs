@@ -6,6 +6,15 @@ import app from "./dist/server/server.js";
 const port = Number(process.env.PORT ?? 8080);
 const hostname = "0.0.0.0";
 const clientRoot = resolve(process.cwd(), "dist", "client");
+const publicAssets = new Set([
+  "/apple-touch-icon.png",
+  "/favicon-32.png",
+  "/favicon.svg",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/site.webmanifest",
+  "/via-logo.png",
+]);
 
 const server = createServer(async (incoming, outgoing) => {
   try {
@@ -50,9 +59,7 @@ const server = createServer(async (incoming, outgoing) => {
     outgoing.statusCode = response.status;
     outgoing.statusMessage = response.statusText;
     const setCookies =
-      typeof response.headers.getSetCookie === "function"
-        ? response.headers.getSetCookie()
-        : [];
+      typeof response.headers.getSetCookie === "function" ? response.headers.getSetCookie() : [];
 
     response.headers.forEach((value, name) => {
       if (name.toLowerCase() !== "set-cookie") {
@@ -88,11 +95,7 @@ server.listen(port, hostname, () => {
 });
 
 function serveStaticAsset(pathname, outgoing) {
-  if (
-    pathname !== "/favicon.svg" &&
-    pathname !== "/via-logo.png" &&
-    !pathname.startsWith("/assets/")
-  ) {
+  if (!publicAssets.has(pathname) && !pathname.startsWith("/assets/")) {
     return false;
   }
 
@@ -105,9 +108,12 @@ function serveStaticAsset(pathname, outgoing) {
 
   outgoing.statusCode = 200;
   outgoing.setHeader("content-type", getContentType(filePath));
-  outgoing.setHeader("cache-control", pathname.startsWith("/assets/")
-    ? "public, max-age=31536000, immutable"
-    : "public, max-age=3600");
+  outgoing.setHeader(
+    "cache-control",
+    pathname.startsWith("/assets/")
+      ? "public, max-age=31536000, immutable"
+      : "public, max-age=3600",
+  );
   createReadStream(filePath).pipe(outgoing);
   return true;
 }
@@ -129,6 +135,8 @@ function getContentType(filePath) {
       return "image/webp";
     case ".ico":
       return "image/x-icon";
+    case ".webmanifest":
+      return "application/manifest+json; charset=utf-8";
     default:
       return "application/octet-stream";
   }

@@ -137,7 +137,12 @@ export function renderSignInPage(request: Request) {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0f5b99" />
     <title>VIA Portal - Sign in</title>
+    <link rel="icon" href="/favicon-32.png?v=3" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" />
+    <link rel="manifest" href="/site.webmanifest?v=3" />
     <style>
       :root {
         color-scheme: light;

@@ -364,6 +364,15 @@ function AppTile({ app, onFeedback }: { app: PortalApp; onFeedback: (app: Portal
         >
           <Icon className="h-6 w-6" />
         </div>
+        <button
+          type="button"
+          onClick={() => onFeedback(app)}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dfe8f3] bg-white text-[#69758b] transition hover:border-[var(--via-blue)]/35 hover:text-[var(--via-blue)]"
+          aria-label={`Share feedback about ${app.name}`}
+          title={`Feedback for ${app.name}`}
+        >
+          <MessageSquareText className="h-4 w-4" />
+        </button>
       </div>
       <div className="mt-6 flex-1">
         <h3 className="text-lg font-semibold tracking-normal text-[#08172f]">{app.name}</h3>
@@ -371,22 +380,14 @@ function AppTile({ app, onFeedback }: { app: PortalApp; onFeedback: (app: Portal
           {app.description || "Open application"}
         </p>
       </div>
-      <div className="mt-5 flex items-center gap-2 border-t border-[#edf2f7] pt-4">
+      <div className="mt-5 border-t border-[#edf2f7] pt-4">
         <a
           href={`/sso/launch?app=${encodeURIComponent(app.id)}`}
-          className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[var(--via-blue)] px-3 text-sm font-semibold text-white transition hover:bg-[var(--via-blue-dark)]"
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[var(--via-blue)] px-3 text-sm font-semibold text-white transition hover:bg-[var(--via-blue-dark)]"
         >
           Open app
           <ArrowRight className="h-4 w-4" />
         </a>
-        <button
-          type="button"
-          onClick={() => onFeedback(app)}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#dfe8f3] bg-white px-3 text-sm font-semibold text-[#10223d] transition hover:border-[var(--via-blue)]/35 hover:text-[var(--via-blue)]"
-        >
-          <MessageSquareText className="h-4 w-4" />
-          Feedback
-        </button>
       </div>
     </article>
   );

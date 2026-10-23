@@ -1,25 +1,33 @@
 import { getPortalSession, isPortalAdmin } from "./google-auth";
 import {
   createApp,
+  createAppFeedback,
   createStaffProfile,
   deleteApp,
   deleteStaffProfile,
   getAllApps,
+  getAllFeedback,
   getAllStaffProfiles,
   getStaffProfile,
   getVisibleApps,
   registerPortalUser,
   updateApp,
+  updateFeedbackStatus,
   updateStaffProfile,
   type AppInput,
+  type FeedbackCategory,
+  type FeedbackStatus,
   type StaffProfileInput,
 } from "./portal-store";
 
 export function isPortalApiRoute(pathname: string) {
   return (
     pathname === "/api/apps" ||
+    pathname === "/api/feedback" ||
     pathname === "/api/admin/apps" ||
     pathname.startsWith("/api/admin/apps/") ||
+    pathname === "/api/admin/feedback" ||
+    pathname.startsWith("/api/admin/feedback/") ||
     pathname === "/api/admin/staff" ||
     pathname.startsWith("/api/admin/staff/")
   );
@@ -62,6 +70,30 @@ export async function handlePortalApi(request: Request) {
     }
   }
 
+  if (url.pathname === "/api/feedback" && request.method === "POST") {
+    try {
+      const body = (await request.json()) as {
+        applicationId?: string;
+        category?: FeedbackCategory;
+        message?: string;
+      };
+      return json(
+        {
+          feedback: await createAppFeedback({
+            applicationId: body.applicationId ?? "",
+            category: body.category ?? "suggestion",
+            message: body.message ?? "",
+            userEmail: session.email,
+            userName: session.name,
+          }),
+        },
+        201,
+      );
+    } catch (error) {
+      return json({ error: getErrorMessage(error) }, 400);
+    }
+  }
+
   if (!isPortalAdmin(session.email)) {
     return json({ error: "Admin access required." }, 403);
   }
@@ -72,6 +104,26 @@ export async function handlePortalApi(request: Request) {
     } catch (error) {
       console.error(error);
       return json({ error: getErrorMessage(error) }, 500);
+    }
+  }
+
+  if (url.pathname === "/api/admin/feedback" && request.method === "GET") {
+    try {
+      return json({ feedback: await getAllFeedback() });
+    } catch (error) {
+      console.error(error);
+      return json({ error: getErrorMessage(error) }, 500);
+    }
+  }
+
+  if (url.pathname.startsWith("/api/admin/feedback/") && request.method === "PATCH") {
+    const feedbackId = url.pathname.replace("/api/admin/feedback/", "");
+    try {
+      const body = (await request.json()) as { status?: FeedbackStatus };
+      const feedback = await updateFeedbackStatus(feedbackId, body.status ?? "new");
+      return feedback ? json({ feedback }) : json({ error: "Feedback not found." }, 404);
+    } catch (error) {
+      return json({ error: getErrorMessage(error) }, 400);
     }
   }
 

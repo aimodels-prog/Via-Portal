@@ -12,17 +12,17 @@ datasource db {
 }
 
 model User {
-  id            String          @id @default(cuid())
+  id            String    @id @default(cuid())
   name          String?
-  email         String          @unique
+  email         String    @unique
   emailVerified DateTime?
   image         String?
-  role          String          @default("user") // superadmin, user
+  role          String    @default("user") // superadmin, user
   accounts      Account[]
   sessions      Session[]
-  
-  appAccess     UserAppAccess[]
- 
+
+  appAccess UserAppAccess[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -39,12 +39,12 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
- 
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
- 
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+
   @@id([provider, providerAccountId])
 }
 
@@ -53,7 +53,7 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -62,37 +62,56 @@ model VerificationToken {
   identifier String
   token      String
   expires    DateTime
- 
+
   @@id([identifier, token])
 }
 
 model Application {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  url         String
-  description String?
-  status      String   @default("active") // active, inactive
-  icon        String   @default("app") // app, file, sparkles
-  accent      String   @default("blue")   // blue, green, red
-  visibleToAllStaff Boolean @default(true)
+  id                String   @id @default(cuid())
+  name              String
+  slug              String   @unique
+  url               String
+  description       String?
+  status            String   @default("active") // active, inactive
+  icon              String   @default("app") // app, file, sparkles
+  accent            String   @default("blue") // blue, green, red
+  visibleToAllStaff Boolean  @default(true)
   visibleToEmails   String[] @default([])
-  
-  userAccess  UserAppAccess[]
+
+  userAccess UserAppAccess[]
+  feedback   AppFeedback[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+model AppFeedback {
+  id            String  @id @default(cuid())
+  applicationId String
+  userEmail     String
+  userName      String?
+  category      String  @default("suggestion") // suggestion, recommendation, issue, other
+  message       String
+  status        String  @default("new") // new, reviewed, resolved
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([applicationId, createdAt])
+  @@index([status, createdAt])
+}
+
 model UserAppAccess {
-  id             String      @id @default(cuid())
-  userId         String
-  applicationId  String
-  role           String      @default("user") // admin, user
-  status         String      @default("active") // active, revoked
-  
-  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  application    Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  id            String @id @default(cuid())
+  userId        String
+  applicationId String
+  role          String @default("user") // admin, user
+  status        String @default("active") // active, revoked
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

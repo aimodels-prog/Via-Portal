@@ -2,15 +2,18 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import {
   ArrowRight,
+  CheckCircle2,
   FileText,
   LogOut,
   Monitor,
+  MessageSquareText,
   Plus,
   Settings,
   ShieldCheck,
   Sparkles,
+  X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -52,6 +55,8 @@ type PortalData = {
   user: PortalUser;
   apps: PortalApp[];
 };
+
+type FeedbackCategory = "suggestion" | "recommendation" | "issue" | "other";
 
 const loadPortalData = createServerFn({ method: "GET" }).handler(async () => {
   const [
@@ -126,6 +131,7 @@ function Portal() {
   const initialState = Route.useLoaderData();
   const [state, setState] = useState<PortalData | undefined>(initialState ?? undefined);
   const [error, setError] = useState("");
+  const [feedbackApp, setFeedbackApp] = useState<PortalApp | null>(null);
 
   useEffect(() => {
     if (initialState) return;
@@ -258,7 +264,7 @@ function Portal() {
             {apps.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {apps.map((app) => (
-                  <AppTile key={app.id} app={app} />
+                  <AppTile key={app.id} app={app} onFeedback={setFeedbackApp} />
                 ))}
               </div>
             ) : (
@@ -299,6 +305,9 @@ function Portal() {
           </section>
         </aside>
       </main>
+      {feedbackApp ? (
+        <FeedbackDialog app={feedbackApp} onClose={() => setFeedbackApp(null)} />
+      ) : null}
     </div>
   );
 }
@@ -342,15 +351,12 @@ function PortalMessage({
   );
 }
 
-function AppTile({ app }: { app: PortalApp }) {
+function AppTile({ app, onFeedback }: { app: PortalApp; onFeedback: (app: PortalApp) => void }) {
   const Icon = iconMap[app.icon] ?? Monitor;
   const style = accentMap[app.accent];
 
   return (
-    <a
-      href={`/sso/launch?app=${encodeURIComponent(app.id)}`}
-      className="group relative min-h-[190px] overflow-hidden rounded-[10px] border border-[#dfe8f3] bg-white p-5 shadow-[0_18px_50px_rgba(13,43,79,0.06)] transition duration-300 hover:-translate-y-0.5 hover:border-[var(--via-blue)]/28 hover:shadow-[0_24px_70px_rgba(13,43,79,0.1)]"
-    >
+    <article className="group relative flex min-h-[220px] flex-col overflow-hidden rounded-[10px] border border-[#dfe8f3] bg-white p-5 shadow-[0_18px_50px_rgba(13,43,79,0.06)] transition duration-300 hover:-translate-y-0.5 hover:border-[var(--via-blue)]/28 hover:shadow-[0_24px_70px_rgba(13,43,79,0.1)]">
       <span className={`absolute inset-x-0 top-0 h-1 ${style.line}`} />
       <div className="flex items-start justify-between gap-4">
         <div
@@ -358,17 +364,164 @@ function AppTile({ app }: { app: PortalApp }) {
         >
           <Icon className="h-6 w-6" />
         </div>
-        <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#e3ebf5] text-[#7a879a] transition group-hover:border-[var(--via-blue)]/30 group-hover:text-[var(--via-blue)]">
-          <ArrowRight className="h-4 w-4" />
-        </span>
       </div>
-      <div className="mt-7">
+      <div className="mt-6 flex-1">
         <h3 className="text-lg font-semibold tracking-normal text-[#08172f]">{app.name}</h3>
         <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#69758b]">
           {app.description || "Open application"}
         </p>
       </div>
-    </a>
+      <div className="mt-5 flex items-center gap-2 border-t border-[#edf2f7] pt-4">
+        <a
+          href={`/sso/launch?app=${encodeURIComponent(app.id)}`}
+          className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[var(--via-blue)] px-3 text-sm font-semibold text-white transition hover:bg-[var(--via-blue-dark)]"
+        >
+          Open app
+          <ArrowRight className="h-4 w-4" />
+        </a>
+        <button
+          type="button"
+          onClick={() => onFeedback(app)}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#dfe8f3] bg-white px-3 text-sm font-semibold text-[#10223d] transition hover:border-[var(--via-blue)]/35 hover:text-[var(--via-blue)]"
+        >
+          <MessageSquareText className="h-4 w-4" />
+          Feedback
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function FeedbackDialog({ app, onClose }: { app: PortalApp; onClose: () => void }) {
+  const [category, setCategory] = useState<FeedbackCategory>("suggestion");
+  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  async function submitFeedback(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ applicationId: app.id, category, message }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error ?? "Unable to send feedback.");
+      setSubmitted(true);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to send feedback.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-[#08172f]/55 p-4 backdrop-blur-sm"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="feedback-title"
+        className="w-full max-w-lg overflow-hidden rounded-[10px] border border-[#dfe8f3] bg-white shadow-[0_30px_90px_rgba(8,23,47,0.28)]"
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-[#e8eef6] px-6 py-5">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--via-blue)]">
+              {app.name}
+            </p>
+            <h2 id="feedback-title" className="mt-1 text-xl font-semibold text-[#08172f]">
+              Share feedback
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dfe8f3] text-[#69758b] transition hover:text-[#08172f]"
+            aria-label="Close feedback"
+            title="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {submitted ? (
+          <div className="px-6 py-10 text-center">
+            <CheckCircle2 className="mx-auto h-10 w-10 text-[var(--via-green)]" />
+            <h3 className="mt-4 text-lg font-semibold text-[#08172f]">Feedback sent</h3>
+            <p className="mt-2 text-sm text-[#69758b]">
+              The portal administrators can now review it.
+            </p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-6 inline-flex h-10 items-center rounded-lg bg-[var(--via-blue)] px-5 text-sm font-semibold text-white"
+            >
+              Done
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={submitFeedback} className="space-y-5 px-6 py-5">
+            <label className="block text-sm font-semibold text-[#10223d]">
+              Feedback type
+              <select
+                value={category}
+                onChange={(event) => setCategory(event.target.value as FeedbackCategory)}
+                className="mt-2 h-11 w-full rounded-lg border border-[#d8e3ef] bg-white px-3 text-sm font-normal outline-none focus:border-[var(--via-blue)]"
+              >
+                <option value="suggestion">Suggestion</option>
+                <option value="recommendation">Recommendation</option>
+                <option value="issue">Issue</option>
+                <option value="other">Other note</option>
+              </select>
+            </label>
+            <label className="block text-sm font-semibold text-[#10223d]">
+              What should we improve?
+              <textarea
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                className="mt-2 min-h-36 w-full resize-y rounded-lg border border-[#d8e3ef] bg-white px-3 py-3 text-sm font-normal leading-6 outline-none focus:border-[var(--via-blue)]"
+                placeholder="Write your suggestion, recommendation, or note..."
+                maxLength={2000}
+                required
+              />
+            </label>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-xs text-[#7a879a]">{message.length}/2000</span>
+              <button
+                type="submit"
+                disabled={saving || !message.trim()}
+                className="inline-flex h-10 items-center rounded-lg bg-[var(--via-blue)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--via-blue-dark)] disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {saving ? "Sending..." : "Send feedback"}
+              </button>
+            </div>
+            {error ? (
+              <p className="rounded-lg border border-[var(--via-red)]/25 bg-[var(--via-red)]/5 px-3 py-2 text-sm text-[var(--via-red)]">
+                {error}
+              </p>
+            ) : null}
+          </form>
+        )}
+      </section>
+    </div>
   );
 }
 

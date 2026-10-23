@@ -58,6 +58,30 @@ export type PortalUserInput = {
   isAdmin?: boolean;
 };
 
+export type FeedbackCategory = "suggestion" | "recommendation" | "issue" | "other";
+export type FeedbackStatus = "new" | "reviewed" | "resolved";
+
+export type PortalFeedback = {
+  id: string;
+  applicationId: string;
+  applicationName: string;
+  userEmail: string;
+  userName: string;
+  category: FeedbackCategory;
+  message: string;
+  status: FeedbackStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type FeedbackInput = {
+  applicationId: string;
+  userEmail: string;
+  userName?: string;
+  category: FeedbackCategory;
+  message: string;
+};
+
 loadLocalEnv();
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -169,6 +193,65 @@ export async function deleteApp(id: string) {
 
   await prisma.application.delete({ where: { id } });
   return true;
+}
+
+export async function createAppFeedback(input: FeedbackInput) {
+  await ensureSchema();
+  const userEmail = normalizeEmail(input.userEmail);
+  const category = isFeedbackCategory(input.category) ? input.category : "suggestion";
+  const message = cleanRequired(input.message, "Feedback");
+  if (message.length > 2000) throw new Error("Feedback must be 2,000 characters or fewer.");
+
+  const profile = await prisma.staffProfile.findUnique({ where: { email: userEmail } });
+  if (!profile || profile.status !== "active") {
+    throw new Error("Your staff profile is not active.");
+  }
+
+  const application = await prisma.application.findFirst({
+    where: {
+      id: input.applicationId,
+      status: "active",
+      OR: [{ visibleToAllStaff: true }, { id: { in: profile.allowedAppIds } }],
+    },
+    select: { id: true, name: true },
+  });
+  if (!application) throw new Error("Application is not available to your account.");
+
+  const feedback = await prisma.appFeedback.create({
+    data: {
+      id: randomUUID(),
+      applicationId: application.id,
+      userEmail,
+      userName: input.userName?.trim() || null,
+      category,
+      message,
+    },
+    include: { application: { select: { name: true } } },
+  });
+  return toPortalFeedback(feedback);
+}
+
+export async function getAllFeedback() {
+  await ensureSchema();
+  const feedback = await prisma.appFeedback.findMany({
+    include: { application: { select: { name: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+  return feedback.map(toPortalFeedback);
+}
+
+export async function updateFeedbackStatus(id: string, status: FeedbackStatus) {
+  await ensureSchema();
+  if (!isFeedbackStatus(status)) throw new Error("Invalid feedback status.");
+  const existing = await prisma.appFeedback.findUnique({ where: { id } });
+  if (!existing) return null;
+
+  const feedback = await prisma.appFeedback.update({
+    where: { id },
+    data: { status },
+    include: { application: { select: { name: true } } },
+  });
+  return toPortalFeedback(feedback);
 }
 
 export async function getStaffProfile(email: string) {
@@ -318,6 +401,33 @@ async function ensureSchema() {
 
   await prisma.$executeRawUnsafe(`
     CREATE UNIQUE INDEX IF NOT EXISTS "Application_slug_key" ON "Application"("slug")
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "AppFeedback" (
+      "id" TEXT NOT NULL,
+      "applicationId" TEXT NOT NULL,
+      "userEmail" TEXT NOT NULL,
+      "userName" TEXT,
+      "category" TEXT NOT NULL DEFAULT 'suggestion',
+      "message" TEXT NOT NULL,
+      "status" TEXT NOT NULL DEFAULT 'new',
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "AppFeedback_pkey" PRIMARY KEY ("id"),
+      CONSTRAINT "AppFeedback_applicationId_fkey" FOREIGN KEY ("applicationId")
+        REFERENCES "Application"("id") ON DELETE CASCADE ON UPDATE CASCADE
+    )
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    CREATE INDEX IF NOT EXISTS "AppFeedback_applicationId_createdAt_idx"
+    ON "AppFeedback"("applicationId", "createdAt")
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    CREATE INDEX IF NOT EXISTS "AppFeedback_status_createdAt_idx"
+    ON "AppFeedback"("status", "createdAt")
   `);
 
   await prisma.$executeRawUnsafe(`
@@ -491,6 +601,32 @@ function toStaffProfile(profile: {
   };
 }
 
+function toPortalFeedback(feedback: {
+  id: string;
+  applicationId: string;
+  userEmail: string;
+  userName: string | null;
+  category: string;
+  message: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  application: { name: string };
+}): PortalFeedback {
+  return {
+    id: feedback.id,
+    applicationId: feedback.applicationId,
+    applicationName: feedback.application.name,
+    userEmail: feedback.userEmail,
+    userName: feedback.userName ?? "",
+    category: isFeedbackCategory(feedback.category) ? feedback.category : "other",
+    message: feedback.message,
+    status: isFeedbackStatus(feedback.status) ? feedback.status : "new",
+    createdAt: feedback.createdAt.toISOString(),
+    updatedAt: feedback.updatedAt.toISOString(),
+  };
+}
+
 function cleanRequired(value: string | undefined, label: string) {
   const cleaned = value?.trim();
   if (!cleaned) throw new Error(`${label} is required.`);
@@ -542,6 +678,14 @@ function isAccent(value: string): value is PortalApp["accent"] {
 
 function isStaffStatus(value: string): value is StaffProfile["status"] {
   return value === "active" || value === "inactive";
+}
+
+function isFeedbackCategory(value: string): value is FeedbackCategory {
+  return ["suggestion", "recommendation", "issue", "other"].includes(value);
+}
+
+function isFeedbackStatus(value: string): value is FeedbackStatus {
+  return value === "new" || value === "reviewed" || value === "resolved";
 }
 
 function loadLocalEnv() {

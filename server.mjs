@@ -9,7 +9,6 @@ const clientRoot = resolve(process.cwd(), "dist", "client");
 const publicAssets = new Set([
   "/apple-touch-icon.png",
   "/favicon-32.png",
-  "/favicon.svg",
   "/icon-192.png",
   "/icon-512.png",
   "/site.webmanifest",

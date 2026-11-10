@@ -84,6 +84,7 @@ type PortalFeedback = {
   userName: string;
   category: "suggestion" | "recommendation" | "issue" | "other";
   message: string;
+  pageUrl: string;
   status: "new" | "reviewed" | "resolved";
   createdAt: string;
   updatedAt: string;
@@ -900,6 +901,17 @@ function AdminPage() {
                   <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-foreground">
                     {item.message}
                   </p>
+                  {item.pageUrl ? (
+                    <a
+                      href={item.pageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-3 inline-flex max-w-full items-center gap-1.5 text-xs font-semibold text-[var(--via-blue)] hover:underline"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">Open source page</span>
+                    </a>
+                  ) : null}
                   <p className="mt-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Clock3 className="h-3.5 w-3.5" />
                     {new Intl.DateTimeFormat("en", {

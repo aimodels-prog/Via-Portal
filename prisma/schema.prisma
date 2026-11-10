@@ -92,6 +92,7 @@ model AppFeedback {
   userName      String?
   category      String  @default("suggestion") // suggestion, recommendation, issue, other
   message       String
+  pageUrl       String?
   status        String  @default("new") // new, reviewed, resolved
 
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)

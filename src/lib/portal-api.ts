@@ -34,12 +34,15 @@ export function isPortalApiRoute(pathname: string) {
 }
 
 export async function handlePortalApi(request: Request) {
+  const url = new URL(request.url);
+  if (url.pathname === "/api/feedback") {
+    return handleFeedbackApi(request);
+  }
+
   const session = getPortalSession(request);
   if (!session) {
     return json({ error: "Authentication required." }, 401);
   }
-
-  const url = new URL(request.url);
 
   if (url.pathname === "/api/apps" && request.method === "GET") {
     try {
@@ -67,30 +70,6 @@ export async function handlePortalApi(request: Request) {
     } catch (error) {
       console.error(error);
       return json({ error: getErrorMessage(error) }, 500);
-    }
-  }
-
-  if (url.pathname === "/api/feedback" && request.method === "POST") {
-    try {
-      const body = (await request.json()) as {
-        applicationId?: string;
-        category?: FeedbackCategory;
-        message?: string;
-      };
-      return json(
-        {
-          feedback: await createAppFeedback({
-            applicationId: body.applicationId ?? "",
-            category: body.category ?? "suggestion",
-            message: body.message ?? "",
-            userEmail: session.email,
-            userName: session.name,
-          }),
-        },
-        201,
-      );
-    } catch (error) {
-      return json({ error: getErrorMessage(error) }, 400);
     }
   }
 
@@ -193,6 +172,77 @@ export async function handlePortalApi(request: Request) {
   }
 
   return json({ error: "Not found." }, 404);
+}
+
+async function handleFeedbackApi(request: Request) {
+  const origin = request.headers.get("origin");
+  if (origin && !isAllowedFeedbackOrigin(origin)) {
+    return json({ error: "Feedback is not available from this origin." }, 403);
+  }
+
+  if (request.method === "OPTIONS") {
+    return feedbackResponse(null, 204, origin);
+  }
+
+  if (request.method !== "POST") {
+    return feedbackResponse({ error: "Method not allowed." }, 405, origin);
+  }
+
+  const session = getPortalSession(request);
+  if (!session) {
+    return feedbackResponse({ error: "Authentication required." }, 401, origin);
+  }
+
+  try {
+    const body = (await request.json()) as {
+      applicationId?: string;
+      applicationSlug?: string;
+      category?: FeedbackCategory;
+      message?: string;
+      pageUrl?: string;
+    };
+    const feedback = await createAppFeedback({
+      applicationId: body.applicationId ?? "",
+      applicationSlug: body.applicationSlug,
+      category: body.category ?? "suggestion",
+      message: body.message ?? "",
+      pageUrl: body.pageUrl,
+      userEmail: session.email,
+      userName: session.name,
+    });
+    return feedbackResponse({ feedback }, 201, origin);
+  } catch (error) {
+    return feedbackResponse({ error: getErrorMessage(error) }, 400, origin);
+  }
+}
+
+function feedbackResponse(payload: unknown, status: number, origin: string | null) {
+  const headers = new Headers({
+    "access-control-allow-credentials": "true",
+    "access-control-allow-headers": "content-type",
+    "access-control-allow-methods": "POST, OPTIONS",
+    vary: "Origin",
+  });
+  if (origin) headers.set("access-control-allow-origin", origin);
+  if (status === 204) return new Response(null, { status, headers });
+  headers.set("content-type", "application/json; charset=utf-8");
+  return new Response(JSON.stringify(payload), { status, headers });
+}
+
+function isAllowedFeedbackOrigin(origin: string) {
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "https:") return false;
+    const hostname = url.hostname.toLowerCase();
+    return (
+      hostname === "via-int.com" ||
+      hostname.endsWith(".via-int.com") ||
+      hostname === "via-int.it" ||
+      hostname.endsWith(".via-int.it")
+    );
+  } catch {
+    return false;
+  }
 }
 
 async function readStaffProfileInput(request: Request): Promise<StaffProfileInput> {

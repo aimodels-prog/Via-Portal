@@ -69,6 +69,7 @@ export type PortalFeedback = {
   userName: string;
   category: FeedbackCategory;
   message: string;
+  pageUrl: string;
   status: FeedbackStatus;
   createdAt: string;
   updatedAt: string;
@@ -76,10 +77,12 @@ export type PortalFeedback = {
 
 export type FeedbackInput = {
   applicationId: string;
+  applicationSlug?: string;
   userEmail: string;
   userName?: string;
   category: FeedbackCategory;
   message: string;
+  pageUrl?: string;
 };
 
 loadLocalEnv();
@@ -201,6 +204,7 @@ export async function createAppFeedback(input: FeedbackInput) {
   const category = isFeedbackCategory(input.category) ? input.category : "suggestion";
   const message = cleanRequired(input.message, "Feedback");
   if (message.length > 2000) throw new Error("Feedback must be 2,000 characters or fewer.");
+  const pageUrl = normalizeFeedbackPageUrl(input.pageUrl);
 
   const profile = await prisma.staffProfile.findUnique({ where: { email: userEmail } });
   if (!profile || profile.status !== "active") {
@@ -209,7 +213,9 @@ export async function createAppFeedback(input: FeedbackInput) {
 
   const application = await prisma.application.findFirst({
     where: {
-      id: input.applicationId,
+      ...(input.applicationSlug
+        ? { slug: input.applicationSlug.trim().toLowerCase() }
+        : { id: input.applicationId }),
       status: "active",
       OR: [{ visibleToAllStaff: true }, { id: { in: profile.allowedAppIds } }],
     },
@@ -225,6 +231,7 @@ export async function createAppFeedback(input: FeedbackInput) {
       userName: input.userName?.trim() || null,
       category,
       message,
+      pageUrl,
     },
     include: { application: { select: { name: true } } },
   });
@@ -411,6 +418,7 @@ async function ensureSchema() {
       "userName" TEXT,
       "category" TEXT NOT NULL DEFAULT 'suggestion',
       "message" TEXT NOT NULL,
+      "pageUrl" TEXT,
       "status" TEXT NOT NULL DEFAULT 'new',
       "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -428,6 +436,11 @@ async function ensureSchema() {
   await prisma.$executeRawUnsafe(`
     CREATE INDEX IF NOT EXISTS "AppFeedback_status_createdAt_idx"
     ON "AppFeedback"("status", "createdAt")
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE "AppFeedback"
+    ADD COLUMN IF NOT EXISTS "pageUrl" TEXT
   `);
 
   await prisma.$executeRawUnsafe(`
@@ -608,6 +621,7 @@ function toPortalFeedback(feedback: {
   userName: string | null;
   category: string;
   message: string;
+  pageUrl: string | null;
   status: string;
   createdAt: Date;
   updatedAt: Date;
@@ -621,6 +635,7 @@ function toPortalFeedback(feedback: {
     userName: feedback.userName ?? "",
     category: isFeedbackCategory(feedback.category) ? feedback.category : "other",
     message: feedback.message,
+    pageUrl: feedback.pageUrl ?? "",
     status: isFeedbackStatus(feedback.status) ? feedback.status : "new",
     createdAt: feedback.createdAt.toISOString(),
     updatedAt: feedback.updatedAt.toISOString(),
@@ -635,6 +650,27 @@ function cleanRequired(value: string | undefined, label: string) {
 
 function normalizeIds(ids: string[]) {
   return [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+}
+
+function normalizeFeedbackPageUrl(value: string | undefined) {
+  if (!value?.trim()) return null;
+  const url = new URL(value.trim());
+  if (url.protocol !== "https:") throw new Error("Feedback page URL must use HTTPS.");
+  if (!isAllowedFeedbackHost(url.hostname)) throw new Error("Invalid feedback page URL.");
+  url.username = "";
+  url.password = "";
+  url.hash = "";
+  return url.toString().slice(0, 2000);
+}
+
+function isAllowedFeedbackHost(hostname: string) {
+  const normalized = hostname.toLowerCase();
+  return (
+    normalized === "via-int.com" ||
+    normalized.endsWith(".via-int.com") ||
+    normalized === "via-int.it" ||
+    normalized.endsWith(".via-int.it")
+  );
 }
 
 function createUniqueSlug(name: string, apps: Array<{ slug: string }>) {

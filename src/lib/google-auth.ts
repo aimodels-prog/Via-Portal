@@ -159,16 +159,14 @@ export function renderSignInPage(request: Request) {
       body {
         margin: 0;
         min-height: 100vh;
-        background:
-          linear-gradient(120deg, rgba(15, 91, 153, 0.06) 0%, rgba(255,255,255,0) 42%),
-          linear-gradient(180deg, #ffffff 0%, var(--wash) 100%);
+        background: var(--wash);
         color: var(--ink);
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
       .shell {
         min-height: 100vh;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(360px, 500px);
+        grid-template-columns: minmax(0, 1.15fr) minmax(390px, 0.85fr);
       }
       .brand-panel {
         min-height: 100vh;
@@ -176,24 +174,48 @@ export function renderSignInPage(request: Request) {
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        border-right: 1px solid var(--line);
-        background:
-          linear-gradient(180deg, rgba(255,255,255,0.9), rgba(245,248,252,0.9)),
-          repeating-linear-gradient(90deg, rgba(15,91,153,0.06) 0 1px, transparent 1px 96px);
+        overflow: hidden;
+        position: relative;
+        background: var(--via-blue);
+        color: #ffffff;
+      }
+      .brand-panel::before,
+      .brand-panel::after {
+        content: "";
+        position: absolute;
+        right: clamp(28px, 6vw, 88px);
+        width: clamp(44px, 5vw, 72px);
+      }
+      .brand-panel::before {
+        top: 0;
+        height: clamp(84px, 14vh, 150px);
+        background: var(--via-red);
+      }
+      .brand-panel::after {
+        top: clamp(112px, 18vh, 190px);
+        height: clamp(54px, 9vh, 92px);
+        background: var(--via-green);
       }
       .logo {
-        width: min(360px, 72vw);
+        width: min(280px, 62vw);
         height: auto;
         display: block;
+        position: relative;
+        z-index: 1;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 14px 18px;
       }
       .brand-copy {
         max-width: 620px;
+        position: relative;
+        z-index: 1;
       }
       .eyebrow {
         display: inline-flex;
         align-items: center;
         gap: 10px;
-        color: var(--via-blue);
+        color: #ffffff;
         font-size: 13px;
         font-weight: 800;
         letter-spacing: 0.08em;
@@ -204,20 +226,20 @@ export function renderSignInPage(request: Request) {
         width: 34px;
         height: 3px;
         border-radius: 999px;
-        background: linear-gradient(90deg, var(--via-green), var(--via-red));
+        background: #64df96;
       }
       h1.brand-title {
         margin: 24px 0 0;
         max-width: 720px;
-        font-size: clamp(42px, 6vw, 86px);
-        line-height: 0.98;
+        font-size: clamp(42px, 5vw, 74px);
+        line-height: 1;
         letter-spacing: 0;
-        color: var(--ink);
+        color: #ffffff;
       }
       .brand-note {
         margin-top: 22px;
         max-width: 520px;
-        color: var(--muted);
+        color: rgba(255,255,255,0.76);
         font-size: 17px;
         line-height: 1.65;
       }
@@ -225,31 +247,34 @@ export function renderSignInPage(request: Request) {
         display: flex;
         flex-wrap: wrap;
         gap: 12px;
+        position: relative;
+        z-index: 1;
       }
       .status-pill {
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        background: rgba(255,255,255,0.68);
-        color: var(--muted);
+        border: 1px solid rgba(255,255,255,0.28);
+        border-radius: 8px;
+        background: rgba(255,255,255,0.1);
+        color: #ffffff;
         padding: 10px 14px;
         font-size: 13px;
         font-weight: 700;
       }
       .signin-panel {
         min-height: 100vh;
+        min-width: 0;
         display: grid;
         place-items: center;
-        padding: 28px;
+        padding: clamp(28px, 5vw, 72px);
+        background: #ffffff;
       }
       main {
-        width: min(100%, 390px);
+        width: 100%;
+        max-width: 420px;
+        min-width: 0;
       }
       .card {
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        background: rgba(255,255,255,0.92);
-        padding: 30px;
-        box-shadow: 0 24px 80px rgba(8, 23, 47, 0.12);
+        border-top: 5px solid var(--via-blue);
+        padding: 30px 0 0;
       }
       .small-logo {
         width: 132px;
@@ -259,9 +284,17 @@ export function renderSignInPage(request: Request) {
       }
       h2 {
         margin: 0;
-        font-size: 28px;
+        font-size: 34px;
         line-height: 1.08;
         letter-spacing: 0;
+      }
+      .signin-kicker {
+        margin: 0 0 18px;
+        color: var(--via-blue);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
       p {
         color: var(--muted);
@@ -275,7 +308,7 @@ export function renderSignInPage(request: Request) {
         justify-content: center;
         gap: 12px;
         width: 100%;
-        height: 48px;
+        height: 50px;
         margin-top: 26px;
         border-radius: 9px;
         background: var(--via-blue);
@@ -308,7 +341,7 @@ export function renderSignInPage(request: Request) {
       }
       .domain {
         margin-top: 20px;
-        color: var(--via-green);
+        color: #087d40;
         font-size: 12px;
         font-weight: 700;
         letter-spacing: 0.04em;
@@ -319,11 +352,26 @@ export function renderSignInPage(request: Request) {
         font-size: 12px;
         color: #8a94a8;
       }
+      .color-key {
+        display: grid;
+        grid-template-columns: 5fr 1fr 1fr;
+        height: 8px;
+        margin-top: 34px;
+      }
+      .color-key span:nth-child(1) { background: var(--via-blue); }
+      .color-key span:nth-child(2) { background: var(--via-green); }
+      .color-key span:nth-child(3) { background: var(--via-red); }
       @media (max-width: 900px) {
         .shell { grid-template-columns: 1fr; }
         .brand-panel { display: none; }
         .signin-panel { min-height: 100vh; }
         .small-logo { display: block; }
+        .card { padding-top: 24px; }
+      }
+      @media (max-width: 420px) {
+        .signin-panel { padding: 28px 24px; }
+        h2 { font-size: 32px; }
+        a.button { gap: 10px; font-size: 13px; }
       }
     </style>
   </head>
@@ -346,6 +394,7 @@ export function renderSignInPage(request: Request) {
         <main>
           <img class="small-logo" src="/via-logo.png" alt="VIA International" />
           <div class="card">
+            <div class="signin-kicker">VIA Staff Portal</div>
             <h2>Welcome back.</h2>
             <p>Continue with your VIA Workspace account.</p>
             ${
@@ -355,6 +404,7 @@ export function renderSignInPage(request: Request) {
             }
             ${allowedDomain ? `<div class="domain">${escapeHtml(allowedDomain)}</div>` : ""}
             <p class="fine-print">Protected portal for VIA International staff.</p>
+            <div class="color-key" aria-hidden="true"><span></span><span></span><span></span></div>
           </div>
         </main>
       </section>

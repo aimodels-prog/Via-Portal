@@ -175,18 +175,20 @@ function Portal() {
   }).format(new Date());
 
   return (
-    <div className="min-h-screen bg-[#f6f9fc] text-foreground">
-      <header className="sticky top-0 z-20 border-b border-[#dfe8f3] bg-white/88 backdrop-blur-xl">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8">
-          <a href="/" className="flex items-center">
-            <img src="/via-logo.png" alt="VIA International" className="h-12 w-auto" />
+    <div className="min-h-screen bg-[#f2f6fa] text-foreground">
+      <header className="sticky top-0 z-20 bg-white shadow-[0_1px_0_#d9e4ef]">
+        <div className="mx-auto flex h-[74px] max-w-7xl items-center justify-between px-5 sm:px-8">
+          <a href="/" className="flex items-center gap-4" aria-label="VIA Portal home">
+            <img src="/via-logo.png" alt="VIA International" className="h-11 w-auto" />
+            <span className="hidden h-7 w-px bg-[#d9e4ef] sm:block" />
+            <span className="hidden text-sm font-bold text-[#173452] sm:block">Staff Portal</span>
           </a>
 
           <div className="flex items-center gap-2 sm:gap-3">
             {user.isAdmin ? (
               <a
                 href="/admin"
-                className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#dfe8f3] bg-white px-3 text-sm font-semibold text-[#10223d] shadow-sm transition hover:border-[var(--via-blue)]/35"
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#cbd9e8] bg-[#f7fafc] px-3 text-sm font-semibold text-[#10223d] transition hover:border-[var(--via-blue)]/45 hover:bg-white"
               >
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">Admin</span>
@@ -200,7 +202,7 @@ function Portal() {
             </div>
             <a
               href="/auth/signout"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dfe8f3] bg-white text-[#69758b] shadow-sm transition hover:border-[var(--via-blue)]/35 hover:text-[#10223d]"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#cbd9e8] bg-white text-[#69758b] transition hover:border-[var(--via-red)]/45 hover:text-[var(--via-red)]"
               aria-label="Sign out"
               title="Sign out"
             >
@@ -208,22 +210,35 @@ function Portal() {
             </a>
           </div>
         </div>
+        <div className="grid h-1 grid-cols-[5fr_1fr_1fr]" aria-hidden="true">
+          <span className="bg-[var(--via-blue)]" />
+          <span className="bg-[var(--via-green)]" />
+          <span className="bg-[var(--via-red)]" />
+        </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="space-y-8">
-          <div className="overflow-hidden rounded-[10px] border border-[#dfe8f3] bg-white shadow-[0_24px_70px_rgba(13,43,79,0.08)]">
-            <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1fr_260px] lg:items-end">
+      <main className="mx-auto grid max-w-7xl gap-7 px-5 py-7 sm:px-8 lg:grid-cols-[minmax(0,1fr)_310px]">
+        <section className="space-y-7">
+          <div className="relative overflow-hidden rounded-lg bg-[var(--via-blue)] text-white shadow-[0_22px_60px_rgba(15,91,153,0.24)]">
+            <div
+              className="absolute right-0 top-0 hidden h-full w-28 grid-cols-2 gap-3 p-5 opacity-90 lg:grid"
+              aria-hidden="true"
+            >
+              <span className="mt-12 h-20 bg-[var(--via-green)]" />
+              <span className="h-12 bg-[var(--via-red)]" />
+              <span className="col-span-2 mt-auto h-2 bg-white/75" />
+            </div>
+            <div className="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-[1fr_230px] lg:items-end lg:pr-36">
               <div>
-                <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#dfe8f3] bg-[#f7fafc] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.08em] text-[var(--via-blue)]">
-                  <ShieldCheck className="h-3.5 w-3.5 text-[var(--via-green)]" />
+                <div className="mb-6 inline-flex items-center gap-2 rounded-md border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.08em] text-white">
+                  <ShieldCheck className="h-3.5 w-3.5 text-[#64df96]" />
                   Verified workspace
                 </div>
-                <p className="text-sm font-semibold text-[#69758b]">{currentDate}</p>
-                <h1 className="mt-3 max-w-3xl text-4xl font-semibold leading-[1.02] tracking-normal text-[#08172f] sm:text-5xl">
+                <p className="text-sm font-semibold text-white/70">{currentDate}</p>
+                <h1 className="mt-3 max-w-3xl text-4xl font-semibold leading-[1.05] tracking-normal text-white sm:text-5xl">
                   Good to see you, {firstName}.
                 </h1>
-                <p className="mt-4 max-w-xl text-base leading-7 text-[#647188]">
+                <p className="mt-4 max-w-xl text-base leading-7 text-white/75">
                   Your approved VIA systems are ready.
                 </p>
               </div>
@@ -233,17 +248,12 @@ function Portal() {
                 <Metric label="Access" value="Active" />
               </div>
             </div>
-            <div className="grid h-1 grid-cols-3">
-              <span className="bg-[var(--via-blue)]" />
-              <span className="bg-[var(--via-green)]" />
-              <span className="bg-[var(--via-red)]" />
-            </div>
           </div>
 
           <section aria-label="Applications" className="space-y-4">
             <div className="flex items-end justify-between gap-4">
               <div>
-                <h2 className="text-xl font-semibold tracking-normal text-[#08172f]">
+                <h2 className="text-2xl font-semibold tracking-normal text-[#08172f]">
                   Applications
                 </h2>
                 <p className="mt-1 text-sm text-[#69758b]">
@@ -253,7 +263,7 @@ function Portal() {
               {user.isAdmin ? (
                 <a
                   href="/admin"
-                  className="inline-flex h-10 items-center gap-2 rounded-lg bg-[var(--via-blue)] px-4 text-sm font-semibold text-white shadow-[0_16px_34px_rgba(15,91,153,0.22)] transition hover:bg-[var(--via-blue-dark)]"
+                  className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#08172f] px-4 text-sm font-semibold text-white transition hover:bg-[var(--via-blue)]"
                 >
                   <Plus className="h-4 w-4" />
                   Add app
@@ -280,11 +290,14 @@ function Portal() {
         </section>
 
         <aside className="space-y-4">
-          <section className="rounded-[10px] border border-[#dfe8f3] bg-white p-5 shadow-[0_18px_50px_rgba(13,43,79,0.06)]">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.08em] text-[#69758b]">
-              Session
-            </h2>
-            <div className="mt-5 space-y-4">
+          <section className="overflow-hidden rounded-lg border border-[#d6e2ee] bg-white shadow-[0_16px_45px_rgba(13,43,79,0.07)]">
+            <div className="flex items-center justify-between bg-[#e9f3fb] px-5 py-4">
+              <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--via-blue)]">
+                Your access
+              </h2>
+              <ShieldCheck className="h-5 w-5 text-[var(--via-green)]" />
+            </div>
+            <div className="space-y-4 px-5 py-5">
               <StatusLine label="Identity" value="Google" tone="blue" />
               <StatusLine label="Workspace" value="via-int.com" tone="green" />
               <StatusLine label="Role" value={user.jobTitle} tone="red" />
@@ -297,11 +310,18 @@ function Portal() {
             </div>
           </section>
 
-          <section className="rounded-[10px] border border-[#dfe8f3] bg-[#08172f] p-5 text-white shadow-[0_18px_50px_rgba(8,23,47,0.18)]">
-            <h2 className="text-lg font-semibold tracking-normal">VIA Portal</h2>
-            <p className="mt-2 text-sm leading-6 text-white/68">
-              Secure access, managed by your internal team.
-            </p>
+          <section className="overflow-hidden rounded-lg bg-[#08172f] text-white shadow-[0_18px_50px_rgba(8,23,47,0.18)]">
+            <div className="p-5">
+              <h2 className="text-lg font-semibold tracking-normal">One VIA workspace</h2>
+              <p className="mt-2 text-sm leading-6 text-white/68">
+                Secure access, managed by your internal team.
+              </p>
+            </div>
+            <div className="grid h-2 grid-cols-3" aria-hidden="true">
+              <span className="bg-[var(--via-blue)]" />
+              <span className="bg-[var(--via-green)]" />
+              <span className="bg-[var(--via-red)]" />
+            </div>
           </section>
         </aside>
       </main>
@@ -356,8 +376,8 @@ function AppTile({ app, onFeedback }: { app: PortalApp; onFeedback: (app: Portal
   const style = accentMap[app.accent];
 
   return (
-    <article className="group relative flex min-h-[220px] flex-col overflow-hidden rounded-[10px] border border-[#dfe8f3] bg-white p-5 shadow-[0_18px_50px_rgba(13,43,79,0.06)] transition duration-300 hover:-translate-y-0.5 hover:border-[var(--via-blue)]/28 hover:shadow-[0_24px_70px_rgba(13,43,79,0.1)]">
-      <span className={`absolute inset-x-0 top-0 h-1 ${style.line}`} />
+    <article className="group relative flex min-h-[220px] flex-col overflow-hidden rounded-lg border border-[#d8e3ee] bg-white p-5 shadow-[0_12px_34px_rgba(13,43,79,0.055)] transition duration-300 hover:-translate-y-0.5 hover:border-[var(--via-blue)]/35 hover:shadow-[0_22px_52px_rgba(13,43,79,0.11)]">
+      <span className={`absolute inset-y-0 left-0 w-1.5 ${style.line}`} />
       <div className="flex items-start justify-between gap-4">
         <div
           className={`flex h-12 w-12 items-center justify-center rounded-lg ${style.bg} ${style.text} ring-1 ${style.ring}`}
@@ -383,7 +403,7 @@ function AppTile({ app, onFeedback }: { app: PortalApp; onFeedback: (app: Portal
       <div className="mt-5 border-t border-[#edf2f7] pt-4">
         <a
           href={`/sso/launch?app=${encodeURIComponent(app.id)}`}
-          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[var(--via-blue)] px-3 text-sm font-semibold text-white transition hover:bg-[var(--via-blue-dark)]"
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#102a47] px-3 text-sm font-semibold text-white transition group-hover:bg-[var(--via-blue)]"
         >
           Open app
           <ArrowRight className="h-4 w-4" />
@@ -528,9 +548,9 @@ function FeedbackDialog({ app, onClose }: { app: PortalApp; onClose: () => void 
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[10px] border border-[#dfe8f3] bg-[#f7fafc] p-4">
-      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#69758b]">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-normal text-[#08172f]">{value}</p>
+    <div className="rounded-lg border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
+      <p className="text-xs font-bold uppercase tracking-[0.08em] text-white/65">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-normal text-white">{value}</p>
     </div>
   );
 }

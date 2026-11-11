@@ -349,28 +349,77 @@ function AdminPage() {
     : staff;
 
   return (
-    <div className="min-h-screen px-6 py-8" style={{ background: "var(--gradient-subtle)" }}>
-      <main className="mx-auto max-w-6xl">
-        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <a
-              href="/"
-              className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground transition hover:text-foreground"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Portal
-            </a>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-              Application Admin
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Add software to the portal and control which internal staff can see each application
-              after Google sign-in.
-            </p>
+    <div className="min-h-screen bg-[#f2f6fa]">
+      <header className="sticky top-0 z-20 bg-white shadow-[0_1px_0_#d9e4ef]">
+        <div className="mx-auto flex h-[74px] max-w-7xl items-center justify-between px-5 sm:px-8">
+          <a href="/" className="flex items-center gap-4" aria-label="VIA Portal home">
+            <img src="/via-logo.png" alt="VIA International" className="h-11 w-auto" />
+            <span className="hidden h-7 w-px bg-[#d9e4ef] sm:block" />
+            <span className="hidden text-sm font-bold text-[#173452] sm:block">Portal Admin</span>
+          </a>
+          <a
+            href="/"
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#cbd9e8] bg-white px-3 text-sm font-semibold text-[#173452] transition hover:border-[var(--via-blue)]/45"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Portal
+          </a>
+        </div>
+        <div className="grid h-1 grid-cols-[5fr_1fr_1fr]" aria-hidden="true">
+          <span className="bg-[var(--via-blue)]" />
+          <span className="bg-[var(--via-green)]" />
+          <span className="bg-[var(--via-red)]" />
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-5 py-7 sm:px-8">
+        <header className="mb-7 overflow-hidden rounded-lg bg-[#08172f] text-white shadow-[0_18px_50px_rgba(8,23,47,0.16)]">
+          <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#78b8e7]">
+                Workspace control
+              </p>
+              <h1 className="mt-3 text-3xl font-semibold tracking-normal text-white">
+                Application Admin
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
+                Manage VIA software, staff access, and improvement feedback from one place.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <AdminMetric label="Apps" value={apps.length} tone="blue" />
+              <AdminMetric
+                label="Staff"
+                value={staff.filter((profile) => profile.status === "active").length}
+                tone="green"
+              />
+              <AdminMetric
+                label="New notes"
+                value={feedback.filter((item) => item.status === "new").length}
+                tone="red"
+              />
+            </div>
+          </div>
+          <div className="grid h-2 grid-cols-[5fr_1fr_1fr]" aria-hidden="true">
+            <span className="bg-[var(--via-blue)]" />
+            <span className="bg-[var(--via-green)]" />
+            <span className="bg-[var(--via-red)]" />
           </div>
         </header>
 
-        <section className="mb-8 rounded-lg border border-border bg-background p-5">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--via-blue)] text-white">
+            <Monitor className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-[#08172f]">Software catalogue</h2>
+            <p className="text-sm text-muted-foreground">
+              Add applications and set their default availability.
+            </p>
+          </div>
+        </div>
+
+        <section className="mb-7 rounded-lg border border-[#d6e2ee] border-t-[5px] border-t-[var(--via-blue)] bg-white p-5 shadow-[0_12px_34px_rgba(13,43,79,0.055)]">
           <form onSubmit={saveApp} className="grid gap-5 lg:grid-cols-[1fr_1fr]">
             <div className="space-y-4">
               <div>
@@ -506,7 +555,7 @@ function AdminPage() {
           </form>
         </section>
 
-        <section className="grid gap-4">
+        <section className="grid gap-3">
           {loading ? (
             <div className="rounded-lg border border-border bg-background p-6 text-sm text-muted-foreground">
               Loading applications...
@@ -515,7 +564,7 @@ function AdminPage() {
             apps.map((app) => (
               <article
                 key={app.id}
-                className="grid gap-4 rounded-lg border border-border bg-background p-5 md:grid-cols-[1fr_auto]"
+                className="grid gap-4 rounded-lg border border-[#d8e3ee] bg-white p-5 shadow-[0_8px_24px_rgba(13,43,79,0.04)] transition hover:border-[var(--via-blue)]/35 md:grid-cols-[1fr_auto]"
               >
                 <div className="flex gap-4">
                   <AppIcon app={app} />
@@ -564,10 +613,10 @@ function AdminPage() {
           )}
         </section>
 
-        <section id="staff-directory" className="mt-12 border-t border-border pb-12 pt-10">
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <section id="staff-directory" className="mt-10 pb-12 pt-2">
+          <div className="mb-6 flex flex-col gap-4 rounded-lg border border-[#cae8d6] bg-[#edf9f2] p-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--via-green)]/10 text-[var(--via-green)]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--via-green)] text-white">
                 <UsersRound className="h-5 w-5" />
               </div>
               <div>
@@ -590,7 +639,7 @@ function AdminPage() {
 
           <form
             onSubmit={saveStaff}
-            className="grid gap-4 rounded-lg border border-border bg-background p-5 shadow-sm lg:grid-cols-2"
+            className="grid gap-4 rounded-lg border border-[#d6e2ee] border-t-[5px] border-t-[var(--via-green)] bg-white p-5 shadow-[0_12px_34px_rgba(13,43,79,0.055)] lg:grid-cols-2"
           >
             <div className="lg:col-span-2">
               <h3 className="font-semibold text-foreground">
@@ -754,7 +803,7 @@ function AdminPage() {
             </label>
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-lg border border-border bg-background">
+          <div className="mt-4 overflow-hidden rounded-lg border border-[#d6e2ee] bg-white shadow-[0_10px_30px_rgba(13,43,79,0.045)]">
             {staffLoading ? (
               <div className="p-6 text-sm text-muted-foreground">Loading staff...</div>
             ) : staff.length === 0 ? (
@@ -828,10 +877,10 @@ function AdminPage() {
           </div>
         </section>
 
-        <section id="app-feedback" className="border-t border-border pb-12 pt-10">
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <section id="app-feedback" className="pb-12 pt-2">
+          <div className="mb-6 flex flex-col gap-4 rounded-lg border border-[#f1d2cf] bg-[#fff3f2] p-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--via-blue)]/10 text-[var(--via-blue)]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--via-red)] text-white">
                 <MessageSquareText className="h-5 w-5" />
               </div>
               <div>
@@ -871,7 +920,7 @@ function AdminPage() {
               {feedback.map((item) => (
                 <article
                   key={item.id}
-                  className="rounded-lg border border-border bg-background p-5 shadow-sm"
+                  className="rounded-lg border border-[#d8e3ee] border-t-[4px] border-t-[var(--via-red)] bg-white p-5 shadow-[0_10px_30px_rgba(13,43,79,0.05)]"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
@@ -925,6 +974,33 @@ function AdminPage() {
           )}
         </section>
       </main>
+    </div>
+  );
+}
+
+function AdminMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "blue" | "green" | "red";
+}) {
+  const color =
+    tone === "green"
+      ? "bg-[var(--via-green)]"
+      : tone === "red"
+        ? "bg-[var(--via-red)]"
+        : "bg-[var(--via-blue)]";
+
+  return (
+    <div className="min-w-[82px] rounded-lg border border-white/15 bg-white/8 p-3 sm:min-w-[104px]">
+      <span className={`mb-3 block h-1.5 w-8 ${color}`} />
+      <p className="text-2xl font-semibold text-white">{value}</p>
+      <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.08em] text-white/55">
+        {label}
+      </p>
     </div>
   );
 }

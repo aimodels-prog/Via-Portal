@@ -4,13 +4,16 @@ import {
   ArrowRight,
   CheckCircle2,
   FileText,
+  LayoutGrid,
   LogOut,
   Monitor,
   MessageSquareText,
   Plus,
+  Search,
   Settings,
   ShieldCheck,
   Sparkles,
+  UserRoundCheck,
   X,
 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
@@ -132,6 +135,7 @@ function Portal() {
   const [state, setState] = useState<PortalData | undefined>(initialState ?? undefined);
   const [error, setError] = useState("");
   const [feedbackApp, setFeedbackApp] = useState<PortalApp | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (initialState) return;
@@ -173,158 +177,237 @@ function Portal() {
     month: "short",
     day: "numeric",
   }).format(new Date());
+  const visibleApps = apps.filter((app) =>
+    `${app.name} ${app.description}`.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+  );
 
   return (
-    <div className="min-h-screen bg-[#f2f6fa] text-foreground">
-      <header className="sticky top-0 z-20 bg-white shadow-[0_1px_0_#d9e4ef]">
-        <div className="mx-auto flex h-[74px] max-w-7xl items-center justify-between px-5 sm:px-8">
-          <a href="/" className="flex items-center gap-4" aria-label="VIA Portal home">
-            <img src="/via-logo.png" alt="VIA International" className="h-11 w-auto" />
-            <span className="hidden h-7 w-px bg-[#d9e4ef] sm:block" />
-            <span className="hidden text-sm font-bold text-[#173452] sm:block">Staff Portal</span>
+    <div className="min-h-screen bg-[#f4f7fa] text-[#08172f] lg:grid lg:grid-cols-[244px_minmax(0,1fr)]">
+      <aside className="sticky top-0 hidden h-screen flex-col justify-between overflow-hidden bg-[#07172d] px-5 py-7 text-white lg:flex">
+        <div className="relative z-10">
+          <a
+            href="/"
+            className="grid h-[70px] w-[178px] place-items-center rounded-lg bg-white"
+            aria-label="VIA Portal home"
+          >
+            <img src="/via-logo.png" alt="VIA International" className="w-[148px]" />
           </a>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            {user.isAdmin ? (
-              <a
-                href="/admin"
-                className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#cbd9e8] bg-[#f7fafc] px-3 text-sm font-semibold text-[#10223d] transition hover:border-[var(--via-blue)]/45 hover:bg-white"
-              >
-                <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Admin</span>
-              </a>
-            ) : null}
-            <div className="hidden min-w-0 text-right md:block">
-              <p className="truncate text-sm font-semibold text-[#10223d]">
-                {user.name ?? user.email}
-              </p>
-              <p className="truncate text-xs text-[#69758b]">{user.email}</p>
-            </div>
+          <p className="mb-3 mt-8 px-2 text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#7890aa]">
+            Staff workspace
+          </p>
+          <nav className="space-y-1.5" aria-label="Portal navigation">
             <a
-              href="/auth/signout"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#cbd9e8] bg-white text-[#69758b] transition hover:border-[var(--via-red)]/45 hover:text-[var(--via-red)]"
-              aria-label="Sign out"
-              title="Sign out"
+              href="#applications"
+              className="flex h-12 items-center gap-3 rounded-lg bg-[#112942] px-3 text-sm font-semibold text-white"
             >
-              <LogOut className="h-4 w-4" />
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-[var(--via-green)]/12">
+                <span className="h-2 w-2 rounded-full bg-[#34d27d]" />
+              </span>
+              Launchpad
             </a>
-          </div>
-        </div>
-        <div className="grid h-1 grid-cols-[5fr_1fr_1fr]" aria-hidden="true">
-          <span className="bg-[var(--via-blue)]" />
-          <span className="bg-[var(--via-green)]" />
-          <span className="bg-[var(--via-red)]" />
-        </div>
-      </header>
-
-      <main className="mx-auto grid max-w-7xl gap-7 px-5 py-7 sm:px-8 lg:grid-cols-[minmax(0,1fr)_310px]">
-        <section className="space-y-7">
-          <div className="relative overflow-hidden rounded-lg bg-[var(--via-blue)] text-white shadow-[0_22px_60px_rgba(15,91,153,0.24)]">
-            <div
-              className="absolute right-0 top-0 hidden h-full w-28 grid-cols-2 gap-3 p-5 opacity-90 lg:grid"
-              aria-hidden="true"
+            <a
+              href="#access"
+              className="flex h-12 items-center gap-3 rounded-lg px-3 text-sm font-semibold text-[#9fb0c2] transition hover:bg-[#112942] hover:text-white"
             >
-              <span className="mt-12 h-20 bg-[var(--via-green)]" />
-              <span className="h-12 bg-[var(--via-red)]" />
-              <span className="col-span-2 mt-auto h-2 bg-white/75" />
-            </div>
-            <div className="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-[1fr_230px] lg:items-end lg:pr-36">
-              <div>
-                <div className="mb-6 inline-flex items-center gap-2 rounded-md border border-white/25 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.08em] text-white">
-                  <ShieldCheck className="h-3.5 w-3.5 text-[#64df96]" />
-                  Verified workspace
-                </div>
-                <p className="text-sm font-semibold text-white/70">{currentDate}</p>
-                <h1 className="mt-3 max-w-3xl text-4xl font-semibold leading-[1.05] tracking-normal text-white sm:text-5xl">
-                  Good to see you, {firstName}.
-                </h1>
-                <p className="mt-4 max-w-xl text-base leading-7 text-white/75">
-                  Your approved VIA systems are ready.
-                </p>
-              </div>
+              <UserRoundCheck className="h-4 w-4" />
+              My access
+            </a>
+            <a
+              href="#applications"
+              className="flex h-12 items-center gap-3 rounded-lg px-3 text-sm font-semibold text-[#9fb0c2] transition hover:bg-[#112942] hover:text-white"
+            >
+              <MessageSquareText className="h-4 w-4" />
+              Feedback
+            </a>
+          </nav>
+        </div>
 
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-                <Metric label="Apps" value={apps.length.toString()} />
-                <Metric label="Access" value="Active" />
-              </div>
-            </div>
+        <div className="pointer-events-none absolute -left-24 top-[45%] h-48 w-48 rounded-full border-[24px] border-[#0f5b99]/30" />
+
+        <div className="relative z-10 grid grid-cols-[40px_minmax(0,1fr)_32px] items-center gap-2 border-t border-[#20344b] pt-5">
+          <div className="grid h-10 w-10 place-items-center rounded-full bg-white text-xs font-extrabold text-[#07172d]">
+            {getInitials(user)}
           </div>
+          <div className="min-w-0">
+            <p className="truncate text-xs font-bold text-white">{user.name ?? firstName}</p>
+            <p className="mt-1 truncate text-[10px] text-[#7f93a9]">{user.jobTitle}</p>
+          </div>
+          <a
+            href="/auth/signout"
+            className="grid h-8 w-8 place-items-center text-[#8ca0b6] transition hover:text-white"
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <LogOut className="h-4 w-4" />
+          </a>
+        </div>
+      </aside>
 
-          <section aria-label="Applications" className="space-y-4">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-semibold tracking-normal text-[#08172f]">
-                  Applications
-                </h2>
-                <p className="mt-1 text-sm text-[#69758b]">
-                  Open the tools assigned to your account.
-                </p>
-              </div>
+      <div className="min-w-0">
+        <header className="sticky top-0 z-30 border-b border-[#dce5ed] bg-white/95 px-5 backdrop-blur lg:hidden">
+          <div className="flex h-[70px] items-center justify-between">
+            <a href="/" aria-label="VIA Portal home">
+              <img src="/via-logo.png" alt="VIA International" className="h-10 w-auto" />
+            </a>
+            <div className="flex items-center gap-2">
               {user.isAdmin ? (
                 <a
                   href="/admin"
-                  className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#08172f] px-4 text-sm font-semibold text-white transition hover:bg-[var(--via-blue)]"
+                  className="grid h-10 w-10 place-items-center rounded-lg border border-[#d7e1ea] text-[#40566f]"
+                  aria-label="Admin"
+                  title="Admin"
                 >
-                  <Plus className="h-4 w-4" />
-                  Add app
+                  <Settings className="h-4 w-4" />
                 </a>
               ) : null}
+              <a
+                href="/auth/signout"
+                className="grid h-10 w-10 place-items-center rounded-lg border border-[#d7e1ea] text-[#65758a]"
+                aria-label="Sign out"
+                title="Sign out"
+              >
+                <LogOut className="h-4 w-4" />
+              </a>
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-[1500px] px-5 pb-10 sm:px-7 xl:px-9">
+          <header className="flex min-h-[88px] flex-wrap items-center justify-between gap-4 py-4">
+            <div>
+              <p className="text-xs text-[#718198]">{currentDate}</p>
+              <p className="mt-1 text-base font-bold text-[#08172f]">
+                Good to see you, {firstName}.
+              </p>
+            </div>
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              {user.isAdmin ? (
+                <a
+                  href="/admin"
+                  className="hidden h-10 items-center gap-2 rounded-lg border border-[#d7e1ea] bg-white px-4 text-sm font-semibold text-[#40566f] transition hover:border-[var(--via-blue)]/45 sm:inline-flex"
+                >
+                  <Settings className="h-4 w-4" />
+                  Admin
+                </a>
+              ) : null}
+              <label className="relative min-w-0 flex-1 sm:w-[210px] sm:flex-none">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a98a9]" />
+                <span className="sr-only">Search applications</span>
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search apps"
+                  className="h-10 w-full rounded-lg border border-[#d7e1ea] bg-[#eef3f7] pl-9 pr-3 text-sm text-[#40566f] outline-none transition placeholder:text-[#8a98a9] focus:border-[var(--via-blue)] focus:bg-white"
+                />
+              </label>
+            </div>
+          </header>
+
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_278px]">
+            <section className="relative min-h-[285px] overflow-hidden rounded-lg bg-[var(--via-blue)] p-7 text-white shadow-[0_22px_55px_rgba(14,76,127,0.18)] sm:p-9">
+              <div className="relative z-10 flex min-h-[213px] max-w-2xl flex-col justify-center md:pr-48">
+                <div className="inline-flex w-fit items-center gap-2 rounded-md border border-white/25 px-3 py-2 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#dceeff]">
+                  <ShieldCheck className="h-3.5 w-3.5 text-[#64df96]" />
+                  Verified VIA workspace
+                </div>
+                <h1 className="mt-6 text-4xl font-semibold leading-[1.02] tracking-normal text-white sm:text-5xl">
+                  Everything you need.
+                  <br />
+                  One secure place.
+                </h1>
+                <p className="mt-4 text-sm text-[#c4ddf1] sm:text-base">
+                  Move between your daily systems without another password.
+                </p>
+              </div>
+
+              <div
+                className="absolute -right-12 -top-16 hidden h-[350px] w-[350px] rounded-full border border-white/25 md:block"
+                aria-hidden="true"
+              >
+                <div className="absolute inset-[58px] rounded-full border-[30px] border-[#03345d]/30" />
+                <div className="absolute inset-[132px] grid place-items-center rounded-full bg-white text-2xl font-extrabold text-[var(--via-blue)]">
+                  {apps.length.toString().padStart(2, "0")}
+                </div>
+              </div>
+              <div
+                className="absolute bottom-5 right-5 hidden items-center gap-1.5 sm:flex"
+                aria-hidden="true"
+              >
+                <span className="h-1.5 w-9 bg-white" />
+                <span className="h-1.5 w-5 bg-[var(--via-green)]" />
+                <span className="h-1.5 w-5 bg-[var(--via-red)]" />
+              </div>
+            </section>
+
+            <aside
+              id="access"
+              className="rounded-lg border border-[#d8e3ec] bg-white p-6 shadow-[0_16px_40px_rgba(13,43,79,0.05)]"
+            >
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#77889d]">
+                Access status
+              </p>
+              <div className="mt-5 grid h-12 w-12 place-items-center rounded-full border border-[#bce8ce] bg-[#eaf9f0] text-xs font-extrabold text-[var(--via-green)]">
+                OK
+              </div>
+              <h2 className="mt-5 text-xl font-semibold">You are connected</h2>
+              <p className="mt-2 text-sm leading-6 text-[#718198]">
+                Google Workspace identity verified for via-int.com.
+              </p>
+              <dl className="mt-5">
+                <AccessRow label="Role" value={user.jobTitle} />
+                <AccessRow label="Session" value="Active" />
+                {user.department ? <AccessRow label="Department" value={user.department} /> : null}
+              </dl>
+            </aside>
+          </div>
+
+          <section id="applications" aria-label="Applications" className="mt-8 scroll-mt-24">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#77889d]">
+                  Your tools
+                </p>
+                <h2 className="mt-1 text-3xl font-semibold tracking-normal">Applications</h2>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-[#77879a]">
+                  {visibleApps.length} {visibleApps.length === 1 ? "app" : "apps"} available
+                </span>
+                {user.isAdmin ? (
+                  <a
+                    href="/admin"
+                    className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#07172d] px-4 text-sm font-semibold text-white transition hover:bg-[var(--via-blue)]"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add app
+                  </a>
+                ) : null}
+              </div>
             </div>
 
-            {apps.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {apps.map((app) => (
+            {visibleApps.length > 0 ? (
+              <div className="grid gap-3 xl:grid-cols-2">
+                {visibleApps.map((app) => (
                   <AppTile key={app.id} app={app} onFeedback={setFeedbackApp} />
                 ))}
               </div>
             ) : (
-              <div className="rounded-[10px] border border-dashed border-[#cfdced] bg-white p-8 text-center">
-                <Monitor className="mx-auto mb-3 h-8 w-8 text-[#8b97aa]" />
-                <h3 className="text-base font-semibold text-[#08172f]">No apps assigned yet</h3>
+              <div className="rounded-lg border border-dashed border-[#cfdced] bg-white p-9 text-center">
+                <LayoutGrid className="mx-auto mb-3 h-8 w-8 text-[#8b97aa]" />
+                <h3 className="text-base font-semibold">
+                  {apps.length > 0 ? "No matching applications" : "No apps assigned yet"}
+                </h3>
                 <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#69758b]">
-                  A portal admin can assign software to your account.
+                  {apps.length > 0
+                    ? "Try another search term."
+                    : "A portal admin can assign software to your account."}
                 </p>
               </div>
             )}
           </section>
-        </section>
-
-        <aside className="space-y-4">
-          <section className="overflow-hidden rounded-lg border border-[#d6e2ee] bg-white shadow-[0_16px_45px_rgba(13,43,79,0.07)]">
-            <div className="flex items-center justify-between bg-[#e9f3fb] px-5 py-4">
-              <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-[var(--via-blue)]">
-                Your access
-              </h2>
-              <ShieldCheck className="h-5 w-5 text-[var(--via-green)]" />
-            </div>
-            <div className="space-y-4 px-5 py-5">
-              <StatusLine label="Identity" value="Google" tone="blue" />
-              <StatusLine label="Workspace" value="via-int.com" tone="green" />
-              <StatusLine label="Role" value={user.jobTitle} tone="red" />
-              {user.department ? (
-                <StatusLine label="Department" value={user.department} tone="blue" />
-              ) : null}
-              {user.isAdmin ? (
-                <StatusLine label="Portal access" value="Admin" tone="green" />
-              ) : null}
-            </div>
-          </section>
-
-          <section className="overflow-hidden rounded-lg bg-[#08172f] text-white shadow-[0_18px_50px_rgba(8,23,47,0.18)]">
-            <div className="p-5">
-              <h2 className="text-lg font-semibold tracking-normal">One VIA workspace</h2>
-              <p className="mt-2 text-sm leading-6 text-white/68">
-                Secure access, managed by your internal team.
-              </p>
-            </div>
-            <div className="grid h-2 grid-cols-3" aria-hidden="true">
-              <span className="bg-[var(--via-blue)]" />
-              <span className="bg-[var(--via-green)]" />
-              <span className="bg-[var(--via-red)]" />
-            </div>
-          </section>
-        </aside>
-      </main>
+        </main>
+      </div>
       {feedbackApp ? (
         <FeedbackDialog app={feedbackApp} onClose={() => setFeedbackApp(null)} />
       ) : null}
@@ -342,8 +425,14 @@ function PortalMessage({
   loading?: boolean;
 }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f6f9fc] px-6">
-      <div className="w-full max-w-md rounded-[10px] border border-[#dfe8f3] bg-white p-7 text-center shadow-[0_24px_70px_rgba(13,43,79,0.08)]">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#07172d] px-6">
+      <div
+        className="pointer-events-none absolute -right-32 -top-32 h-[520px] w-[520px] rounded-full border border-white/15"
+        aria-hidden="true"
+      >
+        <div className="absolute inset-20 rounded-full border-[44px] border-[var(--via-blue)]/25" />
+      </div>
+      <div className="relative w-full max-w-md rounded-lg border border-[#dfe8f3] bg-white p-7 text-center shadow-[0_28px_90px_rgba(0,0,0,0.28)]">
         <img src="/via-logo.png" alt="VIA International" className="mx-auto mb-8 h-14 w-auto" />
         <Monitor
           className={`mx-auto mb-4 h-7 w-7 text-[var(--via-blue)] ${loading ? "animate-pulse" : ""}`}
@@ -376,37 +465,41 @@ function AppTile({ app, onFeedback }: { app: PortalApp; onFeedback: (app: Portal
   const style = accentMap[app.accent];
 
   return (
-    <article className="group relative flex min-h-[220px] flex-col overflow-hidden rounded-lg border border-[#d8e3ee] bg-white p-5 shadow-[0_12px_34px_rgba(13,43,79,0.055)] transition duration-300 hover:-translate-y-0.5 hover:border-[var(--via-blue)]/35 hover:shadow-[0_22px_52px_rgba(13,43,79,0.11)]">
-      <span className={`absolute inset-y-0 left-0 w-1.5 ${style.line}`} />
-      <div className="flex items-start justify-between gap-4">
-        <div
-          className={`flex h-12 w-12 items-center justify-center rounded-lg ${style.bg} ${style.text} ring-1 ${style.ring}`}
-        >
-          <Icon className="h-6 w-6" />
-        </div>
-        <button
-          type="button"
-          onClick={() => onFeedback(app)}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dfe8f3] bg-white text-[#69758b] transition hover:border-[var(--via-blue)]/35 hover:text-[var(--via-blue)]"
-          aria-label={`Share feedback about ${app.name}`}
-          title={`Feedback for ${app.name}`}
-        >
-          <MessageSquareText className="h-4 w-4" />
-        </button>
+    <article className="group relative grid min-h-[118px] grid-cols-[52px_minmax(0,1fr)] items-center gap-4 overflow-hidden rounded-lg border border-[#d8e3ee] bg-white px-5 py-4 shadow-[0_10px_28px_rgba(13,43,79,0.04)] transition duration-300 hover:-translate-y-0.5 hover:border-[var(--via-blue)]/30 hover:shadow-[0_18px_42px_rgba(13,43,79,0.09)] sm:grid-cols-[52px_minmax(0,1fr)_82px]">
+      <span className={`absolute inset-y-0 left-0 w-1 ${style.line}`} />
+      <div
+        className={`flex h-11 w-11 items-center justify-center rounded-lg ${style.bg} ${style.text} ring-1 ${style.ring}`}
+      >
+        <Icon className="h-5 w-5" />
       </div>
-      <div className="mt-6 flex-1">
-        <h3 className="text-lg font-semibold tracking-normal text-[#08172f]">{app.name}</h3>
-        <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#69758b]">
+      <div className="min-w-0">
+        <p className="text-[9px] font-extrabold uppercase tracking-[0.1em] text-[#8a97a8]">
+          {getAppCategory(app)}
+        </p>
+        <h3 className="mt-1 truncate text-lg font-semibold tracking-normal text-[#08172f]">
+          {app.name}
+        </h3>
+        <p className="mt-1 line-clamp-1 text-xs text-[#6f8094]">
           {app.description || "Open application"}
         </p>
       </div>
-      <div className="mt-5 border-t border-[#edf2f7] pt-4">
+      <div className="col-span-2 flex items-center justify-end gap-2 border-t border-[#edf2f7] pt-3 sm:col-span-1 sm:block sm:border-0 sm:pt-0 sm:text-right">
+        <button
+          type="button"
+          onClick={() => onFeedback(app)}
+          className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-[10px] font-semibold text-[#7b899a] transition hover:bg-[#f0f5f9] hover:text-[var(--via-blue)] sm:mb-3"
+          aria-label={`Share feedback about ${app.name}`}
+          title={`Feedback for ${app.name}`}
+        >
+          <MessageSquareText className="h-3.5 w-3.5" />
+          Feedback
+        </button>
         <a
           href={`/sso/launch?app=${encodeURIComponent(app.id)}`}
-          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#102a47] px-3 text-sm font-semibold text-white transition group-hover:bg-[var(--via-blue)]"
+          className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-extrabold ${style.text} transition hover:bg-[#f0f5f9]`}
         >
-          Open app
-          <ArrowRight className="h-4 w-4" />
+          Open
+          <ArrowRight className="h-3.5 w-3.5" />
         </a>
       </div>
     </article>
@@ -461,21 +554,21 @@ function FeedbackDialog({ app, onClose }: { app: PortalApp; onClose: () => void 
         role="dialog"
         aria-modal="true"
         aria-labelledby="feedback-title"
-        className="w-full max-w-lg overflow-hidden rounded-[10px] border border-[#dfe8f3] bg-white shadow-[0_30px_90px_rgba(8,23,47,0.28)]"
+        className="w-full max-w-lg overflow-hidden rounded-lg border border-[#dfe8f3] bg-white shadow-[0_30px_90px_rgba(8,23,47,0.28)]"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-[#e8eef6] px-6 py-5">
+        <div className="flex items-start justify-between gap-4 bg-[#07172d] px-6 py-5 text-white">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--via-blue)]">
+            <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#78b8e7]">
               {app.name}
             </p>
-            <h2 id="feedback-title" className="mt-1 text-xl font-semibold text-[#08172f]">
+            <h2 id="feedback-title" className="mt-1 text-xl font-semibold text-white">
               Share feedback
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dfe8f3] text-[#69758b] transition hover:text-[#08172f]"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#36506a] text-[#9fb0c2] transition hover:border-white/45 hover:text-white"
             aria-label="Close feedback"
             title="Close"
           >
@@ -546,40 +639,28 @@ function FeedbackDialog({ app, onClose }: { app: PortalApp; onClose: () => void 
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function AccessRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
-      <p className="text-xs font-bold uppercase tracking-[0.08em] text-white/65">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-normal text-white">{value}</p>
+    <div className="flex items-center justify-between gap-4 border-t border-[#edf1f5] py-3 text-xs">
+      <dt className="text-[#77879a]">{label}</dt>
+      <dd className="m-0 truncate text-right font-extrabold text-[#08172f]">{value}</dd>
     </div>
   );
 }
 
-function StatusLine({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: "blue" | "green" | "red";
-}) {
-  const color =
-    tone === "green"
-      ? "bg-[var(--via-green)]"
-      : tone === "red"
-        ? "bg-[var(--via-red)]"
-        : "bg-[var(--via-blue)]";
+function getAppCategory(app: PortalApp) {
+  if (app.icon === "sparkles") return "AI workspace";
+  if (app.icon === "file") return "Projects";
+  return "VIA application";
+}
 
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="flex items-center gap-2">
-        <span className={`h-2 w-2 rounded-full ${color}`} />
-        <span className="text-sm text-[#69758b]">{label}</span>
-      </div>
-      <span className="text-sm font-semibold text-[#10223d]">{value}</span>
-    </div>
-  );
+function getInitials(user: PortalUser) {
+  const source = user.name?.trim() || user.email.split("@")[0] || "VIA";
+  const parts = source.split(/[\s._-]+/).filter(Boolean);
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
 }
 
 function getFirstName(user: PortalUser) {

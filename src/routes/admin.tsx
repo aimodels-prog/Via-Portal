@@ -349,17 +349,19 @@ function AdminPage() {
     : staff;
 
   return (
-    <div className="min-h-screen bg-[#f2f6fa]">
-      <header className="sticky top-0 z-20 bg-white shadow-[0_1px_0_#d9e4ef]">
+    <div className="min-h-screen bg-[#f4f7fa]">
+      <header className="sticky top-0 z-20 bg-[#07172d] shadow-[0_1px_0_#20344b]">
         <div className="mx-auto flex h-[74px] max-w-7xl items-center justify-between px-5 sm:px-8">
           <a href="/" className="flex items-center gap-4" aria-label="VIA Portal home">
-            <img src="/via-logo.png" alt="VIA International" className="h-11 w-auto" />
-            <span className="hidden h-7 w-px bg-[#d9e4ef] sm:block" />
-            <span className="hidden text-sm font-bold text-[#173452] sm:block">Portal Admin</span>
+            <span className="grid h-12 w-[148px] place-items-center rounded-lg bg-white">
+              <img src="/via-logo.png" alt="VIA International" className="w-[124px]" />
+            </span>
+            <span className="hidden h-7 w-px bg-[#294059] sm:block" />
+            <span className="hidden text-sm font-bold text-white sm:block">Portal Admin</span>
           </a>
           <a
             href="/"
-            className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#cbd9e8] bg-white px-3 text-sm font-semibold text-[#173452] transition hover:border-[var(--via-blue)]/45"
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#36506a] bg-[#112942] px-3 text-sm font-semibold text-white transition hover:border-[#78b8e7]"
           >
             <ArrowLeft className="h-4 w-4" />
             Portal
@@ -373,9 +375,15 @@ function AdminPage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-5 py-7 sm:px-8">
-        <header className="mb-7 overflow-hidden rounded-lg bg-[#08172f] text-white shadow-[0_18px_50px_rgba(8,23,47,0.16)]">
-          <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-end">
-            <div>
+        <header className="relative mb-7 overflow-hidden rounded-lg bg-[var(--via-blue)] text-white shadow-[0_18px_50px_rgba(15,91,153,0.18)]">
+          <div
+            className="pointer-events-none absolute -right-20 -top-28 h-80 w-80 rounded-full border border-white/20"
+            aria-hidden="true"
+          >
+            <div className="absolute inset-14 rounded-full border-[28px] border-[#073e73]/25" />
+          </div>
+          <div className="relative grid gap-6 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div className="relative z-10">
               <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#78b8e7]">
                 Workspace control
               </p>
@@ -386,7 +394,7 @@ function AdminPage() {
                 Manage VIA software, staff access, and improvement feedback from one place.
               </p>
             </div>
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="relative z-10 grid grid-cols-3 gap-2 sm:gap-3">
               <AdminMetric label="Apps" value={apps.length} tone="blue" />
               <AdminMetric
                 label="Staff"

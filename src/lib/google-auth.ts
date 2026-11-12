@@ -176,28 +176,31 @@ export function renderSignInPage(request: Request) {
         justify-content: space-between;
         overflow: hidden;
         position: relative;
-        background: var(--via-blue);
+        background: var(--ink);
         color: #ffffff;
       }
       .brand-panel::before,
       .brand-panel::after {
         content: "";
         position: absolute;
-        right: clamp(28px, 6vw, 88px);
-        width: clamp(44px, 5vw, 72px);
+        border-radius: 50%;
       }
       .brand-panel::before {
-        top: 0;
-        height: clamp(84px, 14vh, 150px);
-        background: var(--via-red);
+        width: clamp(320px, 42vw, 620px);
+        height: clamp(320px, 42vw, 620px);
+        right: clamp(-300px, -17vw, -130px);
+        top: clamp(40px, 8vh, 110px);
+        border: 1px solid rgba(255,255,255,0.18);
       }
       .brand-panel::after {
-        top: clamp(112px, 18vh, 190px);
-        height: clamp(54px, 9vh, 92px);
-        background: var(--via-green);
+        width: clamp(190px, 26vw, 390px);
+        height: clamp(190px, 26vw, 390px);
+        right: clamp(-180px, -9vw, -55px);
+        top: clamp(105px, 16vh, 210px);
+        border: clamp(24px, 3.2vw, 48px) solid rgba(15,91,153,0.32);
       }
       .logo {
-        width: min(280px, 62vw);
+        width: min(250px, 62vw);
         height: auto;
         display: block;
         position: relative;
@@ -239,7 +242,7 @@ export function renderSignInPage(request: Request) {
       .brand-note {
         margin-top: 22px;
         max-width: 520px;
-        color: rgba(255,255,255,0.76);
+        color: rgba(255,255,255,0.68);
         font-size: 17px;
         line-height: 1.65;
       }
@@ -381,8 +384,8 @@ export function renderSignInPage(request: Request) {
         <img class="logo" src="/via-logo.png" alt="VIA International" />
         <div class="brand-copy">
           <div class="eyebrow">Internal workspace</div>
-          <h1 class="brand-title">One clear path to every VIA system.</h1>
-          <p class="brand-note">Secure access for approved teams, designed for focused work.</p>
+          <h1 class="brand-title">Everything you need. One secure place.</h1>
+          <p class="brand-note">Move between your approved VIA systems with one trusted identity.</p>
         </div>
         <div class="status-row">
           <div class="status-pill">Google Workspace</div>

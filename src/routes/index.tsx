@@ -13,7 +13,6 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
-  UserRoundCheck,
   X,
 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
@@ -192,34 +191,6 @@ function Portal() {
           >
             <img src="/via-logo.png" alt="VIA International" className="w-[148px]" />
           </a>
-          <p className="mb-3 mt-8 px-2 text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#7890aa]">
-            Staff workspace
-          </p>
-          <nav className="space-y-1.5" aria-label="Portal navigation">
-            <a
-              href="#applications"
-              className="flex h-12 items-center gap-3 rounded-lg bg-[#112942] px-3 text-sm font-semibold text-white"
-            >
-              <span className="grid h-5 w-5 place-items-center rounded-full bg-[var(--via-green)]/12">
-                <span className="h-2 w-2 rounded-full bg-[#34d27d]" />
-              </span>
-              Launchpad
-            </a>
-            <a
-              href="#access"
-              className="flex h-12 items-center gap-3 rounded-lg px-3 text-sm font-semibold text-[#9fb0c2] transition hover:bg-[#112942] hover:text-white"
-            >
-              <UserRoundCheck className="h-4 w-4" />
-              My access
-            </a>
-            <a
-              href="#applications"
-              className="flex h-12 items-center gap-3 rounded-lg px-3 text-sm font-semibold text-[#9fb0c2] transition hover:bg-[#112942] hover:text-white"
-            >
-              <MessageSquareText className="h-4 w-4" />
-              Feedback
-            </a>
-          </nav>
         </div>
 
         <div className="pointer-events-none absolute -left-24 top-[45%] h-48 w-48 rounded-full border-[24px] border-[#0f5b99]/30" />

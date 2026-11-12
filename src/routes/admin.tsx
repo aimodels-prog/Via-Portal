@@ -350,7 +350,7 @@ function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[#f4f7fa]">
-      <header className="sticky top-0 z-20 bg-[#07172d] shadow-[0_1px_0_#20344b]">
+      <header className="sticky top-0 z-20 bg-[var(--via-blue)] shadow-[0_1px_0_#073e73]">
         <div className="mx-auto flex h-[74px] max-w-7xl items-center justify-between px-5 sm:px-8">
           <a href="/" className="flex items-center gap-4" aria-label="VIA Portal home">
             <span className="grid h-12 w-[148px] place-items-center rounded-lg bg-white">

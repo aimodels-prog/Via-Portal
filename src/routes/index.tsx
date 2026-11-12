@@ -182,7 +182,7 @@ function Portal() {
 
   return (
     <div className="min-h-screen bg-[#f4f7fa] text-[#08172f] lg:grid lg:grid-cols-[244px_minmax(0,1fr)]">
-      <aside className="sticky top-0 hidden h-screen flex-col justify-between overflow-hidden bg-[#07172d] px-5 py-7 text-white lg:flex">
+      <aside className="sticky top-0 hidden h-screen flex-col justify-between overflow-hidden bg-[var(--via-blue)] px-5 py-7 text-white lg:flex">
         <div className="relative z-10">
           <a
             href="/"
@@ -193,19 +193,19 @@ function Portal() {
           </a>
         </div>
 
-        <div className="pointer-events-none absolute -left-24 top-[45%] h-48 w-48 rounded-full border-[24px] border-[#0f5b99]/30" />
+        <div className="pointer-events-none absolute -left-24 top-[45%] h-48 w-48 rounded-full border-[24px] border-white/15" />
 
-        <div className="relative z-10 grid grid-cols-[40px_minmax(0,1fr)_32px] items-center gap-2 border-t border-[#20344b] pt-5">
-          <div className="grid h-10 w-10 place-items-center rounded-full bg-white text-xs font-extrabold text-[#07172d]">
+        <div className="relative z-10 grid grid-cols-[40px_minmax(0,1fr)_32px] items-center gap-2 border-t border-white/20 pt-5">
+          <div className="grid h-10 w-10 place-items-center rounded-full bg-white text-xs font-extrabold text-[var(--via-blue)]">
             {getInitials(user)}
           </div>
           <div className="min-w-0">
             <p className="truncate text-xs font-bold text-white">{user.name ?? firstName}</p>
-            <p className="mt-1 truncate text-[10px] text-[#7f93a9]">{user.jobTitle}</p>
+            <p className="mt-1 truncate text-[10px] text-white/65">{user.jobTitle}</p>
           </div>
           <a
             href="/auth/signout"
-            className="grid h-8 w-8 place-items-center text-[#8ca0b6] transition hover:text-white"
+            className="grid h-8 w-8 place-items-center text-white/65 transition hover:text-white"
             aria-label="Sign out"
             title="Sign out"
           >
@@ -244,11 +244,12 @@ function Portal() {
         </header>
 
         <main className="mx-auto max-w-[1500px] px-5 pb-10 sm:px-7 xl:px-9">
-          <header className="flex min-h-[88px] flex-wrap items-center justify-between gap-4 py-4">
+          <header className="flex min-h-[112px] flex-wrap items-center justify-between gap-4 py-5">
             <div>
               <p className="text-xs text-[#718198]">{currentDate}</p>
-              <p className="mt-1 text-base font-bold text-[#08172f]">
-                Good to see you, {firstName}.
+              <p className="mt-2 text-sm font-semibold text-[#65758a]">Good to see you,</p>
+              <p className="mt-0.5 text-3xl font-semibold leading-none text-[var(--via-blue)] sm:text-4xl">
+                {firstName}.
               </p>
             </div>
             <div className="flex w-full items-center gap-2 sm:w-auto">
@@ -348,7 +349,7 @@ function Portal() {
                 {user.isAdmin ? (
                   <a
                     href="/admin"
-                    className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#07172d] px-4 text-sm font-semibold text-white transition hover:bg-[var(--via-blue)]"
+                    className="inline-flex h-10 items-center gap-2 rounded-lg bg-[var(--via-blue)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--via-blue-dark)]"
                   >
                     <Plus className="h-4 w-4" />
                     Add app
@@ -396,7 +397,7 @@ function PortalMessage({
   loading?: boolean;
 }) {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#07172d] px-6">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--via-blue)] px-6">
       <div
         className="pointer-events-none absolute -right-32 -top-32 h-[520px] w-[520px] rounded-full border border-white/15"
         aria-hidden="true"
@@ -527,7 +528,7 @@ function FeedbackDialog({ app, onClose }: { app: PortalApp; onClose: () => void 
         aria-labelledby="feedback-title"
         className="w-full max-w-lg overflow-hidden rounded-lg border border-[#dfe8f3] bg-white shadow-[0_30px_90px_rgba(8,23,47,0.28)]"
       >
-        <div className="flex items-start justify-between gap-4 bg-[#07172d] px-6 py-5 text-white">
+        <div className="flex items-start justify-between gap-4 bg-[var(--via-blue)] px-6 py-5 text-white">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#78b8e7]">
               {app.name}

@@ -176,7 +176,7 @@ export function renderSignInPage(request: Request) {
         justify-content: space-between;
         overflow: hidden;
         position: relative;
-        background: var(--ink);
+        background: var(--via-blue);
         color: #ffffff;
       }
       .brand-panel::before,
@@ -197,7 +197,7 @@ export function renderSignInPage(request: Request) {
         height: clamp(190px, 26vw, 390px);
         right: clamp(-180px, -9vw, -55px);
         top: clamp(105px, 16vh, 210px);
-        border: clamp(24px, 3.2vw, 48px) solid rgba(15,91,153,0.32);
+        border: clamp(24px, 3.2vw, 48px) solid rgba(7,62,115,0.42);
       }
       .logo {
         width: min(250px, 62vw);

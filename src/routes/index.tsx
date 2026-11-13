@@ -35,6 +35,7 @@ import {
   X,
 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
+import { InverseViaLogo } from "../components/via-logo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -276,16 +277,8 @@ function Portal() {
     <div className="min-h-screen bg-[#f4f7fa] text-[#08172f] lg:grid lg:grid-cols-[244px_minmax(0,1fr)]">
       <aside className="sticky top-0 hidden h-screen flex-col justify-between overflow-hidden bg-[var(--via-blue)] px-5 py-7 text-white lg:flex">
         <div className="relative z-10">
-          <a
-            href="/"
-            className="grid h-[70px] w-[178px] place-items-center rounded-lg border border-white/20 bg-white/5"
-            aria-label="VIA Portal home"
-          >
-            <img
-              src="/via-logo.png"
-              alt="VIA International"
-              className="w-[148px] brightness-0 invert"
-            />
+          <a href="/" className="block w-[178px] py-2" aria-label="VIA Portal home">
+            <InverseViaLogo className="w-[158px]" />
           </a>
         </div>
 
@@ -313,16 +306,8 @@ function Portal() {
       <div className="min-w-0">
         <header className="sticky top-0 z-30 border-b border-[#dce5ed] bg-white/95 px-5 backdrop-blur lg:hidden">
           <div className="flex h-[70px] items-center justify-between">
-            <a
-              href="/"
-              className="grid h-11 w-[132px] place-items-center rounded-lg bg-[var(--via-blue)]"
-              aria-label="VIA Portal home"
-            >
-              <img
-                src="/via-logo.png"
-                alt="VIA International"
-                className="w-[112px] brightness-0 invert"
-              />
+            <a href="/" aria-label="VIA Portal home">
+              <img src="/via-logo.png" alt="VIA International" className="h-10 w-auto" />
             </a>
             <div className="flex items-center gap-2">
               {user.isAdmin ? (
@@ -528,13 +513,7 @@ function PortalMessage({
         <div className="absolute inset-20 rounded-full border-[44px] border-[var(--via-blue)]/25" />
       </div>
       <div className="relative w-full max-w-md rounded-lg border border-[#dfe8f3] bg-white p-7 text-center shadow-[0_28px_90px_rgba(0,0,0,0.28)]">
-        <span className="mx-auto mb-8 grid h-[72px] w-[190px] place-items-center rounded-lg bg-[var(--via-blue)]">
-          <img
-            src="/via-logo.png"
-            alt="VIA International"
-            className="w-[158px] brightness-0 invert"
-          />
-        </span>
+        <img src="/via-logo.png" alt="VIA International" className="mx-auto mb-8 h-14 w-auto" />
         <Monitor
           className={`mx-auto mb-4 h-7 w-7 text-[var(--via-blue)] ${loading ? "animate-pulse" : ""}`}
         />

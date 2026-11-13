@@ -17,6 +17,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
+import { InverseViaLogo } from "../components/via-logo";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -358,13 +359,7 @@ function AdminPage() {
       <header className="sticky top-0 z-20 bg-[var(--via-blue)] shadow-[0_1px_0_#073e73]">
         <div className="mx-auto flex h-[74px] max-w-7xl items-center justify-between px-5 sm:px-8">
           <a href="/" className="flex items-center gap-4" aria-label="VIA Portal home">
-            <span className="grid h-12 w-[148px] place-items-center rounded-lg border border-white/20 bg-white/5">
-              <img
-                src="/via-logo.png"
-                alt="VIA International"
-                className="w-[124px] brightness-0 invert"
-              />
-            </span>
+            <InverseViaLogo className="w-[132px]" />
             <span className="hidden h-7 w-px bg-[#294059] sm:block" />
             <span className="hidden text-sm font-bold text-white sm:block">Portal Admin</span>
           </a>

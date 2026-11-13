@@ -199,13 +199,27 @@ export function renderSignInPage(request: Request) {
         top: clamp(105px, 16vh, 210px);
         border: clamp(24px, 3.2vw, 48px) solid rgba(7,62,115,0.42);
       }
-      .logo {
+      .inverse-logo {
         width: min(250px, 62vw);
-        height: auto;
-        display: block;
+        aspect-ratio: 2048 / 766;
         position: relative;
         z-index: 1;
+      }
+      .inverse-logo img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .inverse-logo-base {
         filter: brightness(0) invert(1);
+      }
+      .inverse-logo-red {
+        clip-path: ellipse(2.8% 7.5% at 59.9% 10.9%);
+      }
+      .inverse-logo-green {
+        clip-path: ellipse(2.8% 7.5% at 55.2% 26.3%);
       }
       .brand-copy {
         max-width: 620px;
@@ -277,19 +291,11 @@ export function renderSignInPage(request: Request) {
         border-top: 5px solid var(--via-blue);
         padding: 30px 0 0;
       }
-      .small-logo-wrap {
-        width: 152px;
-        height: 58px;
-        display: none;
-        place-items: center;
-        margin-bottom: 30px;
-        border-radius: 8px;
-        background: var(--via-blue);
-      }
       .small-logo {
-        width: 126px;
+        width: 132px;
         height: auto;
-        filter: brightness(0) invert(1);
+        display: none;
+        margin-bottom: 30px;
       }
       h2 {
         margin: 0;
@@ -374,7 +380,7 @@ export function renderSignInPage(request: Request) {
         .shell { grid-template-columns: 1fr; }
         .brand-panel { display: none; }
         .signin-panel { min-height: 100vh; }
-        .small-logo-wrap { display: grid; }
+        .small-logo { display: block; }
         .card { padding-top: 24px; }
       }
       @media (max-width: 420px) {
@@ -387,7 +393,11 @@ export function renderSignInPage(request: Request) {
   <body>
     <div class="shell">
       <section class="brand-panel">
-        <img class="logo" src="/via-logo.png" alt="VIA International" />
+        <div class="inverse-logo" role="img" aria-label="VIA International">
+          <img class="inverse-logo-base" src="/via-logo.png" alt="" />
+          <img class="inverse-logo-red" src="/via-logo.png" alt="" aria-hidden="true" />
+          <img class="inverse-logo-green" src="/via-logo.png" alt="" aria-hidden="true" />
+        </div>
         <div class="brand-copy">
           <div class="eyebrow">Internal workspace</div>
           <h1 class="brand-title">Everything you need. One secure place.</h1>
@@ -401,9 +411,7 @@ export function renderSignInPage(request: Request) {
       </section>
       <section class="signin-panel">
         <main>
-          <span class="small-logo-wrap">
-            <img class="small-logo" src="/via-logo.png" alt="VIA International" />
-          </span>
+          <img class="small-logo" src="/via-logo.png" alt="VIA International" />
           <div class="card">
             <div class="signin-kicker">VIA Staff Portal</div>
             <h2>Welcome back.</h2>

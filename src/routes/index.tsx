@@ -22,7 +22,6 @@ import {
   ArrowRight,
   CheckCircle2,
   FileText,
-  GripVertical,
   LayoutGrid,
   LogOut,
   Monitor,
@@ -414,15 +413,9 @@ function Portal() {
           <section id="applications" aria-label="Applications" className="mt-8 scroll-mt-24">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#77889d]">
-                    Your tools
-                  </p>
-                  <GripVertical
-                    className="h-4 w-4 text-[#8a98a9]"
-                    aria-label="Applications can be rearranged"
-                  />
-                </div>
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#77889d]">
+                  Your tools
+                </p>
                 <h2 className="mt-1 text-3xl font-semibold tracking-normal">Applications</h2>
               </div>
               <div className="flex items-center gap-3">
@@ -558,37 +551,36 @@ function AppTile({
         transition,
         zIndex: isDragging ? 20 : undefined,
       }}
-      className={`group relative grid min-h-[118px] grid-cols-[28px_52px_minmax(0,1fr)] items-center gap-3 overflow-hidden rounded-lg border bg-white px-4 py-4 transition duration-200 sm:grid-cols-[28px_52px_minmax(0,1fr)_82px] ${
+      className={`group relative grid min-h-[118px] grid-cols-1 items-center overflow-hidden rounded-lg border bg-white p-4 transition duration-200 sm:grid-cols-[minmax(0,1fr)_82px] ${
         isDragging
           ? "scale-[1.015] border-[var(--via-blue)]/45 opacity-95 shadow-[0_24px_60px_rgba(13,43,79,0.2)]"
           : "border-[#d8e3ee] shadow-[0_10px_28px_rgba(13,43,79,0.04)] hover:-translate-y-0.5 hover:border-[var(--via-blue)]/30 hover:shadow-[0_18px_42px_rgba(13,43,79,0.09)]"
       }`}
     >
       <span className={`absolute inset-y-0 left-0 w-1.5 ${palette.line}`} />
-      <button
-        type="button"
+      <div
         {...attributes}
         {...listeners}
-        disabled={sortingDisabled}
-        className="grid h-9 w-7 touch-none place-items-center rounded-md text-[#8a98a9] transition hover:bg-[#edf3f7] hover:text-[var(--via-blue)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--via-blue)] disabled:cursor-default disabled:opacity-35"
+        className={`grid min-w-0 touch-none grid-cols-[52px_minmax(0,1fr)] items-center gap-3 rounded-md outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--via-blue)] ${
+          sortingDisabled ? "cursor-default" : isDragging ? "cursor-grabbing" : "cursor-grab"
+        }`}
         aria-label={`Rearrange ${app.name}`}
         title={sortingDisabled ? undefined : `Drag to rearrange ${app.name}`}
       >
-        <GripVertical className="h-5 w-5" />
-      </button>
-      <AppLogo app={app} Icon={Icon} palette={palette} />
-      <div className="min-w-0">
-        <p className="text-[9px] font-extrabold uppercase tracking-[0.1em] text-[#8a97a8]">
-          {getAppCategory(app)}
-        </p>
-        <h3 className="mt-1 truncate text-lg font-semibold tracking-normal text-[#08172f]">
-          {app.name}
-        </h3>
-        <p className="mt-1 line-clamp-1 text-xs text-[#6f8094]">
-          {app.description || "Open application"}
-        </p>
+        <AppLogo app={app} Icon={Icon} palette={palette} />
+        <div className="min-w-0">
+          <p className="text-[9px] font-extrabold uppercase tracking-[0.1em] text-[#8a97a8]">
+            {getAppCategory(app)}
+          </p>
+          <h3 className="mt-1 truncate text-lg font-semibold tracking-normal text-[#08172f]">
+            {app.name}
+          </h3>
+          <p className="mt-1 line-clamp-1 text-xs text-[#6f8094]">
+            {app.description || "Open application"}
+          </p>
+        </div>
       </div>
-      <div className="col-span-3 flex items-center justify-end gap-2 border-t border-[#edf2f7] pt-3 sm:col-span-1 sm:block sm:border-0 sm:pt-0 sm:text-right">
+      <div className="mt-3 flex items-center justify-end gap-2 border-t border-[#edf2f7] pt-3 sm:mt-0 sm:block sm:border-0 sm:pt-0 sm:text-right">
         <button
           type="button"
           onClick={() => onFeedback(app)}

@@ -32,6 +32,7 @@ import {
   Settings,
   ShieldCheck,
   Sparkles,
+  type LucideIcon,
   X,
 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
@@ -68,6 +69,7 @@ type PortalApp = {
   name: string;
   description: string;
   url: string;
+  logoUrl: string;
   icon: "file" | "sparkles" | "app";
   accent: "blue" | "green" | "red";
 };
@@ -574,11 +576,7 @@ function AppTile({
       >
         <GripVertical className="h-5 w-5" />
       </button>
-      <div
-        className={`flex h-12 w-12 items-center justify-center rounded-lg ${palette.bg} ${palette.text} ring-1 ${palette.ring}`}
-      >
-        <Icon className="h-5 w-5" />
-      </div>
+      <AppLogo app={app} Icon={Icon} palette={palette} />
       <div className="min-w-0">
         <p className="text-[9px] font-extrabold uppercase tracking-[0.1em] text-[#8a97a8]">
           {getAppCategory(app)}
@@ -746,6 +744,40 @@ function FeedbackDialog({ app, onClose }: { app: PortalApp; onClose: () => void 
   );
 }
 
+function AppLogo({
+  app,
+  Icon,
+  palette,
+}: {
+  app: PortalApp;
+  Icon: LucideIcon;
+  palette: { bg: string; text: string; ring: string; line: string };
+}) {
+  const logoUrl = getAppLogoUrl(app);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => setImageFailed(false), [logoUrl]);
+
+  return (
+    <div
+      className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg ${palette.bg} ${palette.text} ring-1 ${palette.ring}`}
+    >
+      {logoUrl && !imageFailed ? (
+        <img
+          src={logoUrl}
+          alt=""
+          className="h-8 w-8 object-contain"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        <Icon className="h-5 w-5" />
+      )}
+    </div>
+  );
+}
+
 function AccessRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-4 border-t border-[#edf1f5] py-3 text-xs">
@@ -768,6 +800,16 @@ function getAppPalette(app: PortalApp) {
     0,
   );
   return blueAppPalettes[hash % blueAppPalettes.length];
+}
+
+function getAppLogoUrl(app: PortalApp) {
+  if (app.logoUrl) return app.logoUrl;
+  if (!app.url || app.url === "#") return "";
+  try {
+    return new URL("/favicon.ico", new URL(app.url).origin).toString();
+  } catch {
+    return "";
+  }
 }
 
 function getInitials(user: PortalUser) {

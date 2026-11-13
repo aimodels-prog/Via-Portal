@@ -71,6 +71,7 @@ model Application {
   name              String
   slug              String   @unique
   url               String
+  logoUrl           String?
   description       String?
   status            String   @default("active") // active, inactive
   icon              String   @default("app") // app, file, sparkles

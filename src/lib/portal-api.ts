@@ -276,6 +276,7 @@ async function readAppInput(request: Request): Promise<AppInput> {
   return {
     name: body.name,
     url: body.url,
+    logoUrl: body.logoUrl,
     description: body.description,
     icon: body.icon,
     accent: body.accent,

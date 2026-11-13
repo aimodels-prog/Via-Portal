@@ -36,6 +36,7 @@ type PortalApp = {
   name: string;
   slug: string;
   url: string;
+  logoUrl: string;
   description: string;
   status: "active" | "inactive";
   icon: "file" | "sparkles" | "app";
@@ -48,6 +49,7 @@ type FormState = {
   id?: string;
   name: string;
   url: string;
+  logoUrl: string;
   description: string;
   status: PortalApp["status"];
   icon: PortalApp["icon"];
@@ -93,6 +95,7 @@ type PortalFeedback = {
 const emptyForm: FormState = {
   name: "",
   url: "",
+  logoUrl: "",
   description: "",
   status: "active",
   icon: "app",
@@ -170,6 +173,7 @@ function AdminPage() {
     const payload = {
       name: form.name,
       url: form.url,
+      logoUrl: form.logoUrl,
       description: form.description,
       status: form.status,
       icon: form.icon,
@@ -214,6 +218,7 @@ function AdminPage() {
       id: app.id,
       name: app.name,
       url: app.url,
+      logoUrl: app.logoUrl,
       description: app.description,
       status: app.status,
       icon: app.icon,
@@ -448,6 +453,19 @@ function AdminPage() {
                   className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-[var(--via-blue)]"
                   placeholder="https://app.example.com"
                   required
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-foreground">
+                  Logo URL
+                  <span className="ml-1 font-normal text-muted-foreground">(optional)</span>
+                </label>
+                <input
+                  type="url"
+                  value={form.logoUrl}
+                  onChange={(event) => setForm({ ...form, logoUrl: event.target.value })}
+                  className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-[var(--via-blue)]"
+                  placeholder="https://app.example.com/logo.png"
                 />
               </div>
               <div>
@@ -1015,6 +1033,8 @@ function AdminMetric({
 
 function AppIcon({ app }: { app: PortalApp }) {
   const Icon = iconMap[app.icon] ?? Monitor;
+  const logoUrl = getAppLogoUrl(app);
+  const [imageFailed, setImageFailed] = useState(false);
   const color =
     app.accent === "green"
       ? "text-[var(--via-green)] bg-[var(--via-green)]/8"
@@ -1022,11 +1042,36 @@ function AppIcon({ app }: { app: PortalApp }) {
         ? "text-[var(--via-red)] bg-[var(--via-red)]/8"
         : "text-[var(--via-blue)] bg-[var(--via-blue)]/8";
 
+  useEffect(() => setImageFailed(false), [logoUrl]);
+
   return (
-    <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${color}`}>
-      <Icon className="h-5 w-5" />
+    <div
+      className={`flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg ${color}`}
+    >
+      {logoUrl && !imageFailed ? (
+        <img
+          src={logoUrl}
+          alt=""
+          className="h-7 w-7 object-contain"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        <Icon className="h-5 w-5" />
+      )}
     </div>
   );
+}
+
+function getAppLogoUrl(app: PortalApp) {
+  if (app.logoUrl) return app.logoUrl;
+  if (!app.url || app.url === "#") return "";
+  try {
+    return new URL("/favicon.ico", new URL(app.url).origin).toString();
+  } catch {
+    return "";
+  }
 }
 
 function parseEmails(value: string) {

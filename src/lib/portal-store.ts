@@ -9,6 +9,7 @@ export type PortalApp = {
   name: string;
   slug: string;
   url: string;
+  logoUrl: string;
   description: string;
   status: "active" | "inactive";
   icon: "file" | "sparkles" | "app";
@@ -22,6 +23,7 @@ export type PortalApp = {
 export type AppInput = {
   name: string;
   url: string;
+  logoUrl?: string;
   description?: string;
   icon?: PortalApp["icon"];
   accent?: PortalApp["accent"];
@@ -109,6 +111,7 @@ const seedApps = [
     name: "Tender CV",
     slug: "tender-cv",
     url: "#",
+    logoUrl: "",
     description: "Manage tender submissions and CVs",
     status: "active",
     icon: "file",
@@ -121,6 +124,7 @@ const seedApps = [
     name: "AI Vendor",
     slug: "ai-vendor",
     url: "#",
+    logoUrl: "",
     description: "AI-powered vendor sourcing",
     status: "active",
     icon: "sparkles",
@@ -435,6 +439,7 @@ async function ensureSchema() {
       "name" TEXT NOT NULL,
       "slug" TEXT NOT NULL,
       "url" TEXT NOT NULL,
+      "logoUrl" TEXT,
       "description" TEXT,
       "status" TEXT NOT NULL DEFAULT 'active',
       "icon" TEXT NOT NULL DEFAULT 'app',
@@ -449,6 +454,11 @@ async function ensureSchema() {
 
   await prisma.$executeRawUnsafe(`
     CREATE UNIQUE INDEX IF NOT EXISTS "Application_slug_key" ON "Application"("slug")
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE "Application"
+    ADD COLUMN IF NOT EXISTS "logoUrl" TEXT
   `);
 
   await prisma.$executeRawUnsafe(`
@@ -552,6 +562,7 @@ function normalizeInput(input: AppInput, slug: string) {
     name: cleanRequired(input.name, "Application name"),
     slug,
     url: cleanRequired(input.url, "Application URL"),
+    logoUrl: normalizeLogoUrl(input.logoUrl),
     description: input.description?.trim() ?? "",
     status: input.status ?? "active",
     icon: input.icon ?? "app",
@@ -564,7 +575,13 @@ function normalizeInput(input: AppInput, slug: string) {
   return app;
 }
 
-function validateApp(app: { url: string; accent: string; icon: string; status: string }) {
+function validateApp(app: {
+  url: string;
+  logoUrl: string | null;
+  accent: string;
+  icon: string;
+  status: string;
+}) {
   if (!["blue", "green", "red"].includes(app.accent)) {
     throw new Error("Invalid accent.");
   }
@@ -580,6 +597,14 @@ function validateApp(app: { url: string; accent: string; icon: string; status: s
   if (app.url !== "#") {
     new URL(app.url);
   }
+}
+
+function normalizeLogoUrl(value?: string) {
+  const logoUrl = value?.trim();
+  if (!logoUrl) return null;
+  const parsed = new URL(logoUrl);
+  if (parsed.protocol !== "https:") throw new Error("Logo URL must use HTTPS.");
+  return parsed.toString();
 }
 
 function normalizeStaffProfileInput(input: StaffProfileInput) {
@@ -610,6 +635,7 @@ function toPortalApp(app: {
   name: string;
   slug: string;
   url: string;
+  logoUrl: string | null;
   description: string | null;
   status: string;
   icon: string;
@@ -624,6 +650,7 @@ function toPortalApp(app: {
     name: app.name,
     slug: app.slug,
     url: app.url,
+    logoUrl: app.logoUrl ?? "",
     description: app.description ?? "",
     status: app.status === "inactive" ? "inactive" : "active",
     icon: isIcon(app.icon) ? app.icon : "app",

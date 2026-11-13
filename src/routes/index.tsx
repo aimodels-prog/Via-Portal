@@ -119,43 +119,59 @@ const loadPortalData = createServerFn({ method: "GET" }).handler(async () => {
   } satisfies PortalData;
 });
 
-const accentMap: Record<
-  PortalApp["accent"],
-  { bg: string; text: string; ring: string; line: string }
-> = {
+type AppPalette = {
+  wash: string;
+  solid: string;
+  text: string;
+  ring: string;
+  line: string;
+  border: string;
+};
+
+const accentMap: Record<PortalApp["accent"], AppPalette> = {
   blue: {
-    bg: "bg-[var(--via-blue)]/7",
+    wash: "bg-[#edf6fd]",
+    solid: "bg-[var(--via-blue)]",
     text: "text-[var(--via-blue)]",
-    ring: "ring-[var(--via-blue)]/15",
+    ring: "ring-[var(--via-blue)]/20",
     line: "bg-[var(--via-blue)]",
+    border: "border-[#cfe3f2]",
   },
   green: {
-    bg: "bg-[var(--via-green)]/8",
+    wash: "bg-[#edf9f2]",
+    solid: "bg-[var(--via-green)]",
     text: "text-[var(--via-green)]",
-    ring: "ring-[var(--via-green)]/15",
+    ring: "ring-[var(--via-green)]/20",
     line: "bg-[var(--via-green)]",
+    border: "border-[#ccebd8]",
   },
   red: {
-    bg: "bg-[var(--via-red)]/8",
+    wash: "bg-[#fff0ef]",
+    solid: "bg-[var(--via-red)]",
     text: "text-[var(--via-red)]",
-    ring: "ring-[var(--via-red)]/15",
+    ring: "ring-[var(--via-red)]/20",
     line: "bg-[var(--via-red)]",
+    border: "border-[#f3d1cf]",
   },
 };
 
 const blueAppPalettes = [
   accentMap.blue,
   {
-    bg: "bg-[#e8f7fa]",
+    wash: "bg-[#eaf8fb]",
+    solid: "bg-[#07829a]",
     text: "text-[#07829a]",
-    ring: "ring-[#07829a]/18",
+    ring: "ring-[#07829a]/20",
     line: "bg-[#07829a]",
+    border: "border-[#c9e7ed]",
   },
   {
-    bg: "bg-[#fff4df]",
+    wash: "bg-[#fff7e8]",
+    solid: "bg-[#d8890d]",
     text: "text-[#b86b00]",
-    ring: "ring-[#b86b00]/18",
+    ring: "ring-[#d8890d]/20",
     line: "bg-[#e39a19]",
+    border: "border-[#f1dfbb]",
   },
   accentMap.red,
   accentMap.green,
@@ -551,17 +567,18 @@ function AppTile({
         transition,
         zIndex: isDragging ? 20 : undefined,
       }}
-      className={`group relative grid min-h-[118px] grid-cols-1 items-center overflow-hidden rounded-lg border bg-white p-4 transition duration-200 sm:grid-cols-[minmax(0,1fr)_82px] ${
+      className={`group relative grid min-h-[124px] grid-cols-1 items-center overflow-hidden rounded-lg border bg-white p-4 transition duration-200 sm:grid-cols-[minmax(0,1fr)_82px] ${palette.border} ${
         isDragging
           ? "scale-[1.015] border-[var(--via-blue)]/45 opacity-95 shadow-[0_24px_60px_rgba(13,43,79,0.2)]"
-          : "border-[#d8e3ee] shadow-[0_10px_28px_rgba(13,43,79,0.04)] hover:-translate-y-0.5 hover:border-[var(--via-blue)]/30 hover:shadow-[0_18px_42px_rgba(13,43,79,0.09)]"
+          : "shadow-[0_10px_28px_rgba(13,43,79,0.04)] hover:-translate-y-0.5 hover:brightness-[0.995] hover:shadow-[0_20px_46px_rgba(13,43,79,0.11)]"
       }`}
     >
-      <span className={`absolute inset-y-0 left-0 w-1.5 ${palette.line}`} />
+      <span className={`absolute inset-y-0 left-0 w-[88px] ${palette.wash}`} aria-hidden="true" />
+      <span className={`absolute inset-y-0 left-0 w-1.5 ${palette.line}`} aria-hidden="true" />
       <div
         {...attributes}
         {...listeners}
-        className={`grid min-w-0 touch-none grid-cols-[52px_minmax(0,1fr)] items-center gap-3 rounded-md outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--via-blue)] ${
+        className={`relative z-10 grid min-w-0 touch-none grid-cols-[56px_minmax(0,1fr)] items-center gap-4 rounded-md outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--via-blue)] ${
           sortingDisabled ? "cursor-default" : isDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
         aria-label={`Rearrange ${app.name}`}
@@ -569,7 +586,7 @@ function AppTile({
       >
         <AppLogo app={app} Icon={Icon} palette={palette} />
         <div className="min-w-0">
-          <p className="text-[9px] font-extrabold uppercase tracking-[0.1em] text-[#8a97a8]">
+          <p className={`text-[9px] font-extrabold uppercase tracking-[0.1em] ${palette.text}`}>
             {getAppCategory(app)}
           </p>
           <h3 className="mt-1 truncate text-lg font-semibold tracking-normal text-[#08172f]">
@@ -580,7 +597,7 @@ function AppTile({
           </p>
         </div>
       </div>
-      <div className="mt-3 flex items-center justify-end gap-2 border-t border-[#edf2f7] pt-3 sm:mt-0 sm:block sm:border-0 sm:pt-0 sm:text-right">
+      <div className="relative z-10 mt-3 flex items-center justify-end gap-2 border-t border-[#edf2f7] pt-3 sm:mt-0 sm:block sm:border-0 sm:pt-0 sm:text-right">
         <button
           type="button"
           onClick={() => onFeedback(app)}
@@ -743,7 +760,7 @@ function AppLogo({
 }: {
   app: PortalApp;
   Icon: LucideIcon;
-  palette: { bg: string; text: string; ring: string; line: string };
+  palette: AppPalette;
 }) {
   const logoUrl = getAppLogoUrl(app);
   const [imageFailed, setImageFailed] = useState(false);
@@ -751,20 +768,26 @@ function AppLogo({
   useEffect(() => setImageFailed(false), [logoUrl]);
 
   return (
-    <div
-      className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg ${palette.bg} ${palette.text} ring-1 ${palette.ring}`}
-    >
+    <div className="relative grid h-12 w-12 place-items-center">
       {logoUrl && !imageFailed ? (
-        <img
-          src={logoUrl}
-          alt=""
-          className="h-8 w-8 object-contain"
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          onError={() => setImageFailed(true)}
-        />
+        <span
+          className={`grid h-12 w-12 place-items-center overflow-hidden rounded-lg bg-white shadow-[0_5px_14px_rgba(13,43,79,0.09)] ring-2 ${palette.ring}`}
+        >
+          <img
+            src={logoUrl}
+            alt=""
+            className="h-8 w-8 object-contain"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            onError={() => setImageFailed(true)}
+          />
+        </span>
       ) : (
-        <Icon className="h-5 w-5" />
+        <span
+          className={`grid h-12 w-12 place-items-center rounded-lg text-white shadow-[0_7px_16px_rgba(13,43,79,0.14)] ${palette.solid}`}
+        >
+          <Icon className="h-5 w-5" strokeWidth={2.2} />
+        </span>
       )}
     </div>
   );

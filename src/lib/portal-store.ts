@@ -147,7 +147,48 @@ export async function getVisibleApps(email: string) {
     orderBy: { name: "asc" },
   });
 
-  return apps.map(toPortalApp);
+  const order = new Map(profile.appOrder.map((appId, index) => [appId, index]));
+  return apps
+    .sort((left, right) => {
+      const leftIndex = order.get(left.id);
+      const rightIndex = order.get(right.id);
+      if (leftIndex !== undefined && rightIndex !== undefined) return leftIndex - rightIndex;
+      if (leftIndex !== undefined) return -1;
+      if (rightIndex !== undefined) return 1;
+      return left.name.localeCompare(right.name);
+    })
+    .map(toPortalApp);
+}
+
+export async function updateUserAppOrder(email: string, requestedAppIds: string[]) {
+  await ensureSeedApps();
+  const normalizedEmail = normalizeEmail(email);
+  const profile = await prisma.staffProfile.findUnique({ where: { email: normalizedEmail } });
+  if (!profile || profile.status !== "active") {
+    throw new Error("Your staff profile is not active.");
+  }
+
+  const visibleApps = await prisma.application.findMany({
+    where: {
+      status: "active",
+      OR: [{ visibleToAllStaff: true }, { id: { in: profile.allowedAppIds } }],
+    },
+    select: { id: true },
+  });
+  const visibleIds = new Set(visibleApps.map((app) => app.id));
+  const appOrder = Array.from(
+    new Set(requestedAppIds.map((appId) => appId.trim()).filter((appId) => visibleIds.has(appId))),
+  );
+
+  for (const app of visibleApps) {
+    if (!appOrder.includes(app.id)) appOrder.push(app.id);
+  }
+
+  await prisma.staffProfile.update({
+    where: { email: normalizedEmail },
+    data: { appOrder },
+  });
+  return appOrder;
 }
 
 export async function getAllApps() {
@@ -469,6 +510,11 @@ async function ensureSchema() {
   await prisma.$executeRawUnsafe(`
     ALTER TABLE "StaffProfile"
     ADD COLUMN IF NOT EXISTS "accessConfigured" BOOLEAN NOT NULL DEFAULT false
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE "StaffProfile"
+    ADD COLUMN IF NOT EXISTS "appOrder" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[]
   `);
 
   await prisma.$executeRawUnsafe(`

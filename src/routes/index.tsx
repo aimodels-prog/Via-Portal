@@ -1,9 +1,28 @@
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  type DragEndEvent,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import {
   ArrowRight,
   CheckCircle2,
   FileText,
+  GripVertical,
   LayoutGrid,
   LogOut,
   Monitor,
@@ -123,6 +142,24 @@ const accentMap: Record<
   },
 };
 
+const blueAppPalettes = [
+  accentMap.blue,
+  {
+    bg: "bg-[#e8f7fa]",
+    text: "text-[#07829a]",
+    ring: "ring-[#07829a]/18",
+    line: "bg-[#07829a]",
+  },
+  {
+    bg: "bg-[#fff4df]",
+    text: "text-[#b86b00]",
+    ring: "ring-[#b86b00]/18",
+    line: "bg-[#e39a19]",
+  },
+  accentMap.red,
+  accentMap.green,
+];
+
 const iconMap = {
   file: FileText,
   sparkles: Sparkles,
@@ -135,6 +172,13 @@ function Portal() {
   const [error, setError] = useState("");
   const [feedbackApp, setFeedbackApp] = useState<PortalApp | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [orderMessage, setOrderMessage] = useState("");
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   useEffect(() => {
     if (initialState) return;
@@ -179,6 +223,37 @@ function Portal() {
   const visibleApps = apps.filter((app) =>
     `${app.name} ${app.description}`.toLowerCase().includes(searchQuery.trim().toLowerCase()),
   );
+  const sortingDisabled = Boolean(searchQuery.trim()) || savingOrder;
+
+  async function handleDragEnd(event: DragEndEvent) {
+    if (!state || sortingDisabled || !event.over || event.active.id === event.over.id) return;
+    const oldIndex = state.apps.findIndex((app) => app.id === event.active.id);
+    const newIndex = state.apps.findIndex((app) => app.id === event.over?.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    const previousApps = state.apps;
+    const reorderedApps = arrayMove(previousApps, oldIndex, newIndex);
+    setState({ ...state, apps: reorderedApps });
+    setSavingOrder(true);
+    setOrderMessage("");
+
+    try {
+      const response = await fetch("/api/apps/order", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ appIds: reorderedApps.map((app) => app.id) }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(payload?.error ?? "Unable to save application order.");
+      setOrderMessage("Order saved");
+      window.setTimeout(() => setOrderMessage(""), 1800);
+    } catch (saveError) {
+      setState((current) => (current ? { ...current, apps: previousApps } : current));
+      setOrderMessage(saveError instanceof Error ? saveError.message : "Unable to save order.");
+    } finally {
+      setSavingOrder(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#f4f7fa] text-[#08172f] lg:grid lg:grid-cols-[244px_minmax(0,1fr)]">
@@ -337,12 +412,21 @@ function Portal() {
           <section id="applications" aria-label="Applications" className="mt-8 scroll-mt-24">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
               <div>
-                <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#77889d]">
-                  Your tools
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#77889d]">
+                    Your tools
+                  </p>
+                  <GripVertical
+                    className="h-4 w-4 text-[#8a98a9]"
+                    aria-label="Applications can be rearranged"
+                  />
+                </div>
                 <h2 className="mt-1 text-3xl font-semibold tracking-normal">Applications</h2>
               </div>
               <div className="flex items-center gap-3">
+                <span className="text-xs font-semibold text-[#65758a]" aria-live="polite">
+                  {savingOrder ? "Saving order..." : orderMessage}
+                </span>
                 <span className="text-xs text-[#77879a]">
                   {visibleApps.length} {visibleApps.length === 1 ? "app" : "apps"} available
                 </span>
@@ -359,11 +443,27 @@ function Portal() {
             </div>
 
             {visibleApps.length > 0 ? (
-              <div className="grid gap-3 xl:grid-cols-2">
-                {visibleApps.map((app) => (
-                  <AppTile key={app.id} app={app} onFeedback={setFeedbackApp} />
-                ))}
-              </div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={visibleApps.map((app) => app.id)}
+                  strategy={rectSortingStrategy}
+                >
+                  <div className="grid gap-3 xl:grid-cols-2">
+                    {visibleApps.map((app) => (
+                      <AppTile
+                        key={app.id}
+                        app={app}
+                        onFeedback={setFeedbackApp}
+                        sortingDisabled={sortingDisabled}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             ) : (
               <div className="rounded-lg border border-dashed border-[#cfdced] bg-white p-9 text-center">
                 <LayoutGrid className="mx-auto mb-3 h-8 w-8 text-[#8b97aa]" />
@@ -432,15 +532,50 @@ function PortalMessage({
   );
 }
 
-function AppTile({ app, onFeedback }: { app: PortalApp; onFeedback: (app: PortalApp) => void }) {
+function AppTile({
+  app,
+  onFeedback,
+  sortingDisabled,
+}: {
+  app: PortalApp;
+  onFeedback: (app: PortalApp) => void;
+  sortingDisabled: boolean;
+}) {
   const Icon = iconMap[app.icon] ?? Monitor;
-  const style = accentMap[app.accent];
+  const palette = getAppPalette(app);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: app.id,
+    disabled: sortingDisabled,
+  });
 
   return (
-    <article className="group relative grid min-h-[118px] grid-cols-[52px_minmax(0,1fr)] items-center gap-4 overflow-hidden rounded-lg border border-[#d8e3ee] bg-white px-5 py-4 shadow-[0_10px_28px_rgba(13,43,79,0.04)] transition duration-300 hover:-translate-y-0.5 hover:border-[var(--via-blue)]/30 hover:shadow-[0_18px_42px_rgba(13,43,79,0.09)] sm:grid-cols-[52px_minmax(0,1fr)_82px]">
-      <span className={`absolute inset-y-0 left-0 w-1 ${style.line}`} />
+    <article
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 20 : undefined,
+      }}
+      className={`group relative grid min-h-[118px] grid-cols-[28px_52px_minmax(0,1fr)] items-center gap-3 overflow-hidden rounded-lg border bg-white px-4 py-4 transition duration-200 sm:grid-cols-[28px_52px_minmax(0,1fr)_82px] ${
+        isDragging
+          ? "scale-[1.015] border-[var(--via-blue)]/45 opacity-95 shadow-[0_24px_60px_rgba(13,43,79,0.2)]"
+          : "border-[#d8e3ee] shadow-[0_10px_28px_rgba(13,43,79,0.04)] hover:-translate-y-0.5 hover:border-[var(--via-blue)]/30 hover:shadow-[0_18px_42px_rgba(13,43,79,0.09)]"
+      }`}
+    >
+      <span className={`absolute inset-y-0 left-0 w-1.5 ${palette.line}`} />
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        disabled={sortingDisabled}
+        className="grid h-9 w-7 touch-none place-items-center rounded-md text-[#8a98a9] transition hover:bg-[#edf3f7] hover:text-[var(--via-blue)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--via-blue)] disabled:cursor-default disabled:opacity-35"
+        aria-label={`Rearrange ${app.name}`}
+        title={sortingDisabled ? undefined : `Drag to rearrange ${app.name}`}
+      >
+        <GripVertical className="h-5 w-5" />
+      </button>
       <div
-        className={`flex h-11 w-11 items-center justify-center rounded-lg ${style.bg} ${style.text} ring-1 ${style.ring}`}
+        className={`flex h-12 w-12 items-center justify-center rounded-lg ${palette.bg} ${palette.text} ring-1 ${palette.ring}`}
       >
         <Icon className="h-5 w-5" />
       </div>
@@ -455,7 +590,7 @@ function AppTile({ app, onFeedback }: { app: PortalApp; onFeedback: (app: Portal
           {app.description || "Open application"}
         </p>
       </div>
-      <div className="col-span-2 flex items-center justify-end gap-2 border-t border-[#edf2f7] pt-3 sm:col-span-1 sm:block sm:border-0 sm:pt-0 sm:text-right">
+      <div className="col-span-3 flex items-center justify-end gap-2 border-t border-[#edf2f7] pt-3 sm:col-span-1 sm:block sm:border-0 sm:pt-0 sm:text-right">
         <button
           type="button"
           onClick={() => onFeedback(app)}
@@ -468,7 +603,7 @@ function AppTile({ app, onFeedback }: { app: PortalApp; onFeedback: (app: Portal
         </button>
         <a
           href={`/sso/launch?app=${encodeURIComponent(app.id)}`}
-          className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-extrabold ${style.text} transition hover:bg-[#f0f5f9]`}
+          className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-extrabold ${palette.text} transition hover:bg-[#f0f5f9]`}
         >
           Open
           <ArrowRight className="h-3.5 w-3.5" />
@@ -624,6 +759,15 @@ function getAppCategory(app: PortalApp) {
   if (app.icon === "sparkles") return "AI workspace";
   if (app.icon === "file") return "Projects";
   return "VIA application";
+}
+
+function getAppPalette(app: PortalApp) {
+  if (app.accent !== "blue") return accentMap[app.accent];
+  const hash = Array.from(app.id).reduce(
+    (value, character) => (value * 31 + character.charCodeAt(0)) >>> 0,
+    0,
+  );
+  return blueAppPalettes[hash % blueAppPalettes.length];
 }
 
 function getInitials(user: PortalUser) {

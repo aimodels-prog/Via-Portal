@@ -128,6 +128,7 @@ model StaffProfile {
   department       String?
   status           String   @default("active") // active, inactive
   allowedAppIds    String[] @default([])
+  appOrder         String[] @default([])
   accessConfigured Boolean  @default(false)
 
   createdAt DateTime @default(now())

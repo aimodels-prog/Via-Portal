@@ -14,6 +14,7 @@ import {
   updateApp,
   updateFeedbackStatus,
   updateStaffProfile,
+  updateUserAppOrder,
   type AppInput,
   type FeedbackCategory,
   type FeedbackStatus,
@@ -23,6 +24,7 @@ import {
 export function isPortalApiRoute(pathname: string) {
   return (
     pathname === "/api/apps" ||
+    pathname === "/api/apps/order" ||
     pathname === "/api/feedback" ||
     pathname === "/api/admin/apps" ||
     pathname.startsWith("/api/admin/apps/") ||
@@ -70,6 +72,18 @@ export async function handlePortalApi(request: Request) {
     } catch (error) {
       console.error(error);
       return json({ error: getErrorMessage(error) }, 500);
+    }
+  }
+
+  if (url.pathname === "/api/apps/order" && request.method === "PATCH") {
+    try {
+      const body = (await request.json()) as { appIds?: unknown };
+      if (!Array.isArray(body.appIds) || !body.appIds.every((appId) => typeof appId === "string")) {
+        return json({ error: "A valid application order is required." }, 400);
+      }
+      return json({ appOrder: await updateUserAppOrder(session.email, body.appIds) });
+    } catch (error) {
+      return json({ error: getErrorMessage(error) }, 400);
     }
   }
 

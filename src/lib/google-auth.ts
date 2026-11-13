@@ -216,10 +216,10 @@ export function renderSignInPage(request: Request) {
         filter: brightness(0) invert(1);
       }
       .inverse-logo-red {
-        clip-path: ellipse(2.8% 7.5% at 59.9% 10.9%);
+        clip-path: polygon(53.5% 2%, 60.8% 2%, 60.8% 20%, 53.5% 20%);
       }
       .inverse-logo-green {
-        clip-path: ellipse(2.8% 7.5% at 55.2% 26.3%);
+        clip-path: polygon(48.5% 17%, 56.5% 17%, 56.5% 36%, 48.5% 36%);
       }
       .brand-copy {
         max-width: 620px;

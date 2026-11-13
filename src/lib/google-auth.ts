@@ -205,9 +205,7 @@ export function renderSignInPage(request: Request) {
         display: block;
         position: relative;
         z-index: 1;
-        border-radius: 8px;
-        background: #ffffff;
-        padding: 14px 18px;
+        filter: brightness(0) invert(1);
       }
       .brand-copy {
         max-width: 620px;
@@ -279,11 +277,19 @@ export function renderSignInPage(request: Request) {
         border-top: 5px solid var(--via-blue);
         padding: 30px 0 0;
       }
-      .small-logo {
-        width: 132px;
-        height: auto;
+      .small-logo-wrap {
+        width: 152px;
+        height: 58px;
         display: none;
+        place-items: center;
         margin-bottom: 30px;
+        border-radius: 8px;
+        background: var(--via-blue);
+      }
+      .small-logo {
+        width: 126px;
+        height: auto;
+        filter: brightness(0) invert(1);
       }
       h2 {
         margin: 0;
@@ -368,7 +374,7 @@ export function renderSignInPage(request: Request) {
         .shell { grid-template-columns: 1fr; }
         .brand-panel { display: none; }
         .signin-panel { min-height: 100vh; }
-        .small-logo { display: block; }
+        .small-logo-wrap { display: grid; }
         .card { padding-top: 24px; }
       }
       @media (max-width: 420px) {
@@ -395,7 +401,9 @@ export function renderSignInPage(request: Request) {
       </section>
       <section class="signin-panel">
         <main>
-          <img class="small-logo" src="/via-logo.png" alt="VIA International" />
+          <span class="small-logo-wrap">
+            <img class="small-logo" src="/via-logo.png" alt="VIA International" />
+          </span>
           <div class="card">
             <div class="signin-kicker">VIA Staff Portal</div>
             <h2>Welcome back.</h2>

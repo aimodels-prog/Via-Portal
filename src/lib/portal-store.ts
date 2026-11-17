@@ -444,7 +444,7 @@ async function ensureSchema() {
       "status" TEXT NOT NULL DEFAULT 'active',
       "icon" TEXT NOT NULL DEFAULT 'app',
       "accent" TEXT NOT NULL DEFAULT 'blue',
-      "visibleToAllStaff" BOOLEAN NOT NULL DEFAULT true,
+      "visibleToAllStaff" BOOLEAN NOT NULL DEFAULT false,
       "visibleToEmails" TEXT[] DEFAULT ARRAY[]::TEXT[],
       "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -528,13 +528,8 @@ async function ensureSchema() {
   `);
 
   await prisma.$executeRawUnsafe(`
-    UPDATE "Application"
-    SET "visibleToAllStaff" = ("slug" = 'via-agent')
-    WHERE EXISTS (
-      SELECT 1
-      FROM "StaffProfile"
-      WHERE "accessConfigured" = false
-    )
+    ALTER TABLE "Application"
+    ALTER COLUMN "visibleToAllStaff" SET DEFAULT false
   `);
 
   await prisma.$executeRawUnsafe(`

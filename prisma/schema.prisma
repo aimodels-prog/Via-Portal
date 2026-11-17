@@ -76,7 +76,7 @@ model Application {
   status            String   @default("active") // active, inactive
   icon              String   @default("app") // app, file, sparkles
   accent            String   @default("blue") // blue, green, red
-  visibleToAllStaff Boolean  @default(true)
+  visibleToAllStaff Boolean  @default(false)
   visibleToEmails   String[] @default([])
 
   userAccess UserAppAccess[]

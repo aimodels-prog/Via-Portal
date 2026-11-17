@@ -53,6 +53,12 @@ export type StaffProfileInput = {
   visibleAppIds?: string[];
 };
 
+export type BulkStaffAccessInput = {
+  staffIds: string[];
+  appIds: string[];
+  action: "grant" | "revoke";
+};
+
 export type PortalUserInput = {
   email: string;
   name?: string;
@@ -407,6 +413,49 @@ export async function updateStaffProfile(id: string, input: StaffProfileInput) {
     },
   });
   return toStaffProfile(updated);
+}
+
+export async function updateBulkStaffAccess(input: BulkStaffAccessInput) {
+  await ensureSchema();
+  const staffIds = normalizeIds(input.staffIds);
+  const appIds = normalizeIds(input.appIds);
+
+  if (staffIds.length === 0) throw new Error("Select at least one staff member.");
+  if (appIds.length === 0) throw new Error("Select at least one application.");
+  if (input.action !== "grant" && input.action !== "revoke") {
+    throw new Error("Choose whether to grant or remove access.");
+  }
+
+  const [profiles, applications] = await Promise.all([
+    prisma.staffProfile.findMany({ where: { id: { in: staffIds } } }),
+    prisma.application.findMany({ where: { id: { in: appIds } }, select: { id: true } }),
+  ]);
+
+  if (profiles.length !== staffIds.length)
+    throw new Error("One or more staff members were not found.");
+  if (applications.length !== appIds.length)
+    throw new Error("One or more applications were not found.");
+
+  const selectedApps = new Set(appIds);
+  const updated = await prisma.$transaction(
+    profiles.map((profile) => {
+      const allowedAppIds =
+        input.action === "grant"
+          ? normalizeIds([...profile.allowedAppIds, ...appIds])
+          : profile.allowedAppIds.filter((appId) => !selectedApps.has(appId));
+      const appOrder =
+        input.action === "revoke"
+          ? profile.appOrder.filter((appId) => !selectedApps.has(appId))
+          : profile.appOrder;
+
+      return prisma.staffProfile.update({
+        where: { id: profile.id },
+        data: { allowedAppIds, appOrder, accessConfigured: true },
+      });
+    }),
+  );
+
+  return updated.map(toStaffProfile);
 }
 
 export async function deleteStaffProfile(id: string) {

@@ -13,9 +13,11 @@ import {
   registerPortalUser,
   updateApp,
   updateFeedbackStatus,
+  updateBulkStaffAccess,
   updateStaffProfile,
   updateUserAppOrder,
   type AppInput,
+  type BulkStaffAccessInput,
   type FeedbackCategory,
   type FeedbackStatus,
   type StaffProfileInput,
@@ -145,6 +147,15 @@ export async function handlePortalApi(request: Request) {
     }
   }
 
+  if (url.pathname === "/api/admin/staff/access" && request.method === "PATCH") {
+    try {
+      const input = await readBulkStaffAccessInput(request);
+      return json({ staff: await updateBulkStaffAccess(input) });
+    } catch (error) {
+      return json({ error: getErrorMessage(error) }, 400);
+    }
+  }
+
   if (url.pathname.startsWith("/api/admin/staff/")) {
     const profileId = url.pathname.replace("/api/admin/staff/", "");
 
@@ -268,6 +279,25 @@ async function readStaffProfileInput(request: Request): Promise<StaffProfileInpu
     department: body.department,
     status: body.status,
     visibleAppIds: body.visibleAppIds,
+  };
+}
+
+async function readBulkStaffAccessInput(request: Request): Promise<BulkStaffAccessInput> {
+  const body = (await request.json()) as Partial<BulkStaffAccessInput>;
+  if (!Array.isArray(body.staffIds) || !body.staffIds.every((id) => typeof id === "string")) {
+    throw new Error("A valid staff selection is required.");
+  }
+  if (!Array.isArray(body.appIds) || !body.appIds.every((id) => typeof id === "string")) {
+    throw new Error("A valid application selection is required.");
+  }
+  if (body.action !== "grant" && body.action !== "revoke") {
+    throw new Error("A valid bulk access action is required.");
+  }
+
+  return {
+    staffIds: body.staffIds,
+    appIds: body.appIds,
+    action: body.action,
   };
 }
 

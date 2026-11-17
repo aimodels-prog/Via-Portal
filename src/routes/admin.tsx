@@ -6,9 +6,12 @@ import {
   Clock3,
   ExternalLink,
   FileText,
+  KeyRound,
   LoaderCircle,
   MessageSquareText,
+  Minus,
   Monitor,
+  Plus,
   Save,
   Search,
   Sparkles,
@@ -132,6 +135,11 @@ function AdminPage() {
   const [staffSaving, setStaffSaving] = useState(false);
   const [staffError, setStaffError] = useState("");
   const [staffSearch, setStaffSearch] = useState("");
+  const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([]);
+  const [selectedBulkAppIds, setSelectedBulkAppIds] = useState<string[]>([]);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkError, setBulkError] = useState("");
+  const [bulkMessage, setBulkMessage] = useState("");
   const [feedback, setFeedback] = useState<PortalFeedback[]>([]);
   const [feedbackLoading, setFeedbackLoading] = useState(true);
   const [feedbackError, setFeedbackError] = useState("");
@@ -298,7 +306,74 @@ function AdminPage() {
       setStaffError(result?.error ?? "Unable to remove staff profile.");
       return;
     }
+    setSelectedStaffIds((current) => current.filter((id) => id !== profile.id));
     loadStaff();
+  }
+
+  function toggleStaffSelection(profileId: string) {
+    setSelectedStaffIds((current) =>
+      current.includes(profileId)
+        ? current.filter((id) => id !== profileId)
+        : [...current, profileId],
+    );
+    setBulkMessage("");
+  }
+
+  function toggleAllFilteredStaff() {
+    const filteredIds = filteredStaff.map((profile) => profile.id);
+    const filteredIdSet = new Set(filteredIds);
+    const allSelected =
+      filteredIds.length > 0 && filteredIds.every((id) => selectedStaffIds.includes(id));
+
+    setSelectedStaffIds((current) =>
+      allSelected
+        ? current.filter((id) => !filteredIdSet.has(id))
+        : Array.from(new Set([...current, ...filteredIds])),
+    );
+    setBulkMessage("");
+  }
+
+  async function updateSelectedStaffAccess(action: "grant" | "revoke") {
+    if (selectedStaffIds.length === 0 || selectedBulkAppIds.length === 0) return;
+
+    setBulkSaving(true);
+    setBulkError("");
+    setBulkMessage("");
+
+    try {
+      const response = await fetch("/api/admin/staff/access", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          staffIds: selectedStaffIds,
+          appIds: selectedBulkAppIds,
+          action,
+        }),
+      });
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error ?? "Unable to update application access.");
+      }
+
+      const updatedProfiles = (result?.staff ?? []) as StaffProfile[];
+      const updatedById = new Map(updatedProfiles.map((profile) => [profile.id, profile]));
+      setStaff((current) => current.map((profile) => updatedById.get(profile.id) ?? profile));
+      setBulkMessage(
+        `${action === "grant" ? "Granted" : "Removed"} ${selectedBulkAppIds.length} application${
+          selectedBulkAppIds.length === 1 ? "" : "s"
+        } ${action === "grant" ? "for" : "from"} ${selectedStaffIds.length} staff member${
+          selectedStaffIds.length === 1 ? "" : "s"
+        }.`,
+      );
+      setSelectedBulkAppIds([]);
+    } catch (accessError) {
+      setBulkError(
+        accessError instanceof Error ? accessError.message : "Unable to update application access.",
+      );
+    } finally {
+      setBulkSaving(false);
+    }
   }
 
   function loadFeedback() {
@@ -353,6 +428,11 @@ function AdminPage() {
         ),
       )
     : staff;
+  const selectedStaffIdSet = new Set(selectedStaffIds);
+  const allFilteredStaffSelected =
+    filteredStaff.length > 0 &&
+    filteredStaff.every((profile) => selectedStaffIdSet.has(profile.id));
+  const bulkApps = apps.filter((app) => app.status === "active" && !app.visibleToAllStaff);
 
   return (
     <div className="min-h-screen bg-[#f4f7fa]">
@@ -808,25 +888,143 @@ function AdminPage() {
             </div>
           </form>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mt-8 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h3 className="font-semibold text-foreground">Team members</h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 Staff appear automatically after their first portal sign-in.
               </p>
             </div>
-            <label className="relative block w-full sm:w-72">
-              <span className="sr-only">Search staff</span>
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="search"
-                value={staffSearch}
-                onChange={(event) => setStaffSearch(event.target.value)}
-                className="h-10 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm outline-none focus:border-[var(--via-blue)]"
-                placeholder="Search staff"
-              />
-            </label>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <label className="inline-flex h-10 items-center gap-2 rounded-lg border border-input bg-white px-3 text-sm font-semibold text-foreground">
+                <input
+                  type="checkbox"
+                  checked={allFilteredStaffSelected}
+                  onChange={toggleAllFilteredStaff}
+                  disabled={filteredStaff.length === 0}
+                  className="h-4 w-4"
+                />
+                Select shown
+              </label>
+              <label className="relative block w-full sm:w-72">
+                <span className="sr-only">Search staff</span>
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="search"
+                  value={staffSearch}
+                  onChange={(event) => setStaffSearch(event.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm outline-none focus:border-[var(--via-blue)]"
+                  placeholder="Search staff"
+                />
+              </label>
+            </div>
           </div>
+
+          {selectedStaffIds.length > 0 ? (
+            <section className="mt-4 border-y border-[#b8d7ed] bg-[#edf6fd] px-5 py-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[var(--via-blue)] text-white">
+                    <KeyRound className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h4 className="font-semibold text-foreground">Bulk application access</h4>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {selectedStaffIds.length} staff member
+                      {selectedStaffIds.length === 1 ? "" : "s"} selected
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedStaffIds([]);
+                    setSelectedBulkAppIds([]);
+                    setBulkError("");
+                    setBulkMessage("");
+                  }}
+                  className="h-9 self-start px-2 text-sm font-semibold text-[var(--via-blue)]"
+                >
+                  Clear selection
+                </button>
+              </div>
+
+              <fieldset className="mt-5 border-t border-[#cfe3f2] pt-4">
+                <legend className="text-sm font-semibold text-foreground">
+                  Choose applications
+                </legend>
+                {bulkApps.length === 0 ? (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    There are no active individually assigned applications.
+                  </p>
+                ) : (
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {bulkApps.map((app) => {
+                      const checked = selectedBulkAppIds.includes(app.id);
+                      return (
+                        <label
+                          key={app.id}
+                          className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border bg-white px-3 py-2 text-sm transition ${
+                            checked
+                              ? "border-[var(--via-blue)] shadow-[0_0_0_2px_rgba(15,96,159,0.12)]"
+                              : "border-[#d6e2ee] hover:border-[#9fc5df]"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(event) =>
+                              setSelectedBulkAppIds((current) =>
+                                event.target.checked
+                                  ? [...current, app.id]
+                                  : current.filter((id) => id !== app.id),
+                              )
+                            }
+                            className="h-4 w-4"
+                          />
+                          <span className="min-w-0 truncate font-semibold text-foreground">
+                            {app.name}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </fieldset>
+
+              {bulkError ? (
+                <p className="mt-4 text-sm font-medium text-destructive">{bulkError}</p>
+              ) : null}
+              {bulkMessage ? (
+                <p className="mt-4 text-sm font-semibold text-[var(--via-green)]">{bulkMessage}</p>
+              ) : null}
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => updateSelectedStaffAccess("grant")}
+                  disabled={bulkSaving || selectedBulkAppIds.length === 0}
+                  className="inline-flex h-10 items-center gap-2 rounded-lg bg-[var(--via-blue)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--via-blue-dark)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {bulkSaving ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                  Grant apps
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateSelectedStaffAccess("revoke")}
+                  disabled={bulkSaving || selectedBulkAppIds.length === 0}
+                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#b8c9d8] bg-white px-4 text-sm font-semibold text-foreground transition hover:border-[var(--via-red)] hover:text-[var(--via-red)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Minus className="h-4 w-4" />
+                  Remove apps
+                </button>
+              </div>
+            </section>
+          ) : null}
 
           <div className="mt-4 overflow-hidden rounded-lg border border-[#d6e2ee] bg-white shadow-[0_10px_30px_rgba(13,43,79,0.045)]">
             {staffLoading ? (
@@ -847,8 +1045,19 @@ function AdminPage() {
                 return (
                   <article
                     key={profile.id}
-                    className="grid gap-4 border-b border-border px-5 py-4 last:border-b-0 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+                    className={`grid grid-cols-[24px_minmax(0,1fr)] gap-4 border-b border-border px-5 py-4 transition last:border-b-0 md:grid-cols-[24px_minmax(0,1fr)_auto] md:items-center ${
+                      selectedStaffIdSet.has(profile.id) ? "bg-[#f3f9fd]" : "bg-white"
+                    }`}
                   >
+                    <label className="flex h-6 items-center" title={`Select ${profile.email}`}>
+                      <input
+                        type="checkbox"
+                        checked={selectedStaffIdSet.has(profile.id)}
+                        onChange={() => toggleStaffSelection(profile.id)}
+                        className="h-4 w-4"
+                        aria-label={`Select ${profile.email}`}
+                      />
+                    </label>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-semibold text-foreground">
@@ -877,7 +1086,7 @@ function AdminPage() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="col-start-2 flex items-center gap-2 md:col-start-3">
                       <button
                         type="button"
                         onClick={() => editStaff(profile)}

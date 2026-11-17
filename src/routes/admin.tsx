@@ -123,6 +123,12 @@ const iconMap = {
   app: Monitor,
 };
 
+const accessBadgeMap: Record<PortalApp["accent"], { badge: string; dot: string }> = {
+  blue: { badge: "border-[#cfe3f2] bg-[#edf6fd] text-[#0b5e9f]", dot: "bg-[#0b5e9f]" },
+  green: { badge: "border-[#ccebd8] bg-[#edf9f2] text-[#087b3d]", dot: "bg-[#00a651]" },
+  red: { badge: "border-[#f3d1cf] bg-[#fff0ef] text-[#b4231f]", dot: "bg-[#ed2524]" },
+};
+
 function AdminPage() {
   const [apps, setApps] = useState<PortalApp[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -1039,9 +1045,11 @@ function AdminPage() {
               </div>
             ) : (
               filteredStaff.map((profile) => {
-                const visibleAppCount = apps.filter(
-                  (app) => app.visibleToAllStaff || profile.visibleAppIds.includes(app.id),
-                ).length;
+                const visibleApps = apps.filter(
+                  (app) =>
+                    app.status === "active" &&
+                    (app.visibleToAllStaff || profile.visibleAppIds.includes(app.id)),
+                );
                 return (
                   <article
                     key={profile.id}
@@ -1081,9 +1089,35 @@ function AdminPage() {
                         ) : null}
                         <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                           <Monitor className="h-4 w-4" />
-                          {visibleAppCount} application
-                          {visibleAppCount === 1 ? "" : "s"}
+                          {visibleApps.length} application
+                          {visibleApps.length === 1 ? "" : "s"}
                         </span>
+                      </div>
+                      <div
+                        className="mt-3 flex flex-wrap gap-1.5"
+                        aria-label={`Applications available to ${profile.name || profile.email}`}
+                      >
+                        {visibleApps.length > 0 ? (
+                          visibleApps.map((app) => {
+                            const badge = accessBadgeMap[app.accent];
+                            return (
+                              <span
+                                key={app.id}
+                                className={`inline-flex min-h-7 items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold ${badge.badge}`}
+                              >
+                                <span
+                                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${badge.dot}`}
+                                  aria-hidden="true"
+                                />
+                                {app.name}
+                              </span>
+                            );
+                          })
+                        ) : (
+                          <span className="inline-flex min-h-7 items-center rounded-full border border-[#d9e2ea] bg-[#f5f7f9] px-2.5 py-1 text-xs font-semibold text-[#718096]">
+                            No applications
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="col-start-2 flex items-center gap-2 md:col-start-3">
